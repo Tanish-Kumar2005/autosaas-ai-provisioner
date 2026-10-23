@@ -5,119 +5,215 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoSaaS AI - Provisioning Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .loading-dots::after { content: '...'; animation: loadingText 1.5s infinite; }
+        @keyframes loadingText { 0%,100% { content: '.'; } 33% { content: '..'; } 66% { content: '...'; } }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased p-6">
-    <div class="max-w-5xl mx-auto space-y-8">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased p-6">
+    <div class="max-w-6xl mx-auto space-y-8">
         
-        <!-- Header -->
-        <header class="border-b border-slate-800 pb-5 flex justify-between items-end">
-            <div>
-                <h1 class="text-3xl font-bold text-white flex items-center gap-3">
-                    AutoSaaS AI Provisioner
-                    <span class="text-xs font-semibold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2.5 py-1 rounded-full">
-                        Agent Active
-                    </span>
-                </h1>
-                <p class="text-slate-400 text-sm mt-1">Autonomous user provisioning with HitL verification & resilient compliance</p>
+        <!-- Progress Header -->
+        <header class="border-b border-slate-800 pb-6 mb-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-white flex items-center gap-3">
+                        AutoSaaS AI Provisioner
+                        <span class="text-xs font-semibold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2.5 py-1 rounded-full animate-pulse">
+                            Agent Active
+                        </span>
+                    </h1>
+                    <p class="text-slate-400 text-sm mt-1">Autonomous user provisioning with HitL verification & resilient compliance</p>
+                </div>
+                <a href="data:text/csv;charset=utf-8,email,role%0Aalex.jones@company.com,Admin%0ASARAH.CONNOR@COMPANY.COM,manager%0Aalex.jones@company.com,Member%0Adavid.miller@company.com,member" 
+                   download="sample_provisioning.csv" 
+                   class="flex items-center gap-2 px-3 py-1.5 bg-orange-900/20 border border-orange-500/30 rounded-lg text-xs text-orange-400 hover:bg-orange-900/40 hover:border-orange-500/50 transition flex sm:inline">
+                    📥 Sample CSV (TC1/TC2/TC3)
+                </a>
             </div>
-            <!-- Quick Helper: Sample CSV Download -->
-            <a href="data:text/csv;charset=utf-8,email,role%0Aalex.jones@company.com,Admin%0ASARAH.CONNOR@COMPANY.COM,manager%0Aalex.jones@company.com,Member%0Adavid.miller@company.com,member" 
-               download="sample_provisioning.csv" 
-               class="text-xs text-orange-400 hover:text-orange-300 underline flex items-center gap-1">
-                📥 Download Test CSV (TC1/TC2/TC3)
-            </a>
         </header>
 
+        <!-- Step Progress Tracker -->
+        <div class="flex items-center gap-2 mb-4">
+            <div class="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                <div id="progressBar" class="h-full bg-orange-500 w-0 transition-all duration-500"></div>
+            </div>
+            <div class="flex items-center gap-1 text-xs text-slate-400 font-mono">
+                <span id="stepIndicator">Step 1 of 3</span>
+            </div>
+        </div>
+
         <!-- Step 1: Upload CSV & Set Target URL -->
-        <section class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 shadow-lg relative">
-            <div class="flex justify-between items-center mb-4">
+        <section id="step1Section" class="bg-slate-900/80 border border-slate-700/60 rounded-2xl p-6 shadow-xl relative group">
+            <div class="absolute top-6 right-6">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-400 border border-orange-500/20 text-xs font-mono">
+                    <span class="w-2 h-2 rounded-full bg-orange-500"></span> TC1: Auto-Validation
+                </span>
+            </div>
+            <div class="flex justify-between items-center mb-6">
                 <h2 class="text-lg font-semibold text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center font-bold">1</span>
+                    <span class="w-7 h-7 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center font-bold">1</span>
                     Upload User CSV & Set Target URL
                 </h2>
-                <span class="text-xs font-mono bg-slate-700 text-slate-300 px-2 py-1 rounded">TC1: Auto-Validation</span>
             </div>
 
-            <div class="space-y-4">
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="updateFileName()">
-                    <button onclick="document.getElementById('csvFile').click()" class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2">
-                        📄 <span id="fileButtonText">Choose CSV File</span>
-                    </button>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="col-span-1 sm:col-span-2">
+                    <div class="flex items-center gap-3">
+                        <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="updateFileName()">
+                        <button onclick="document.getElementById('csvFile').click()" 
+                                class="w-full sm:w-auto bg-orange-600 hover:bg-orange-500 text-white px-5 py-3 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20">
+                            📄 <span id="fileButtonText">Choose CSV File</span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">Expected format: <code class="bg-slate-800 px-1.5 py-0.5 rounded text-orange-300">email,role</code></p>
+                </div>
+                <div class="col-span-1 sm:col-span-1">
                     <input type="text" id="targetUrl" value="https://autosaas-ai-provisioner.onrender.com/static/mock_console.html" 
                            placeholder="Target Console URL" 
-                           class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm font-mono text-slate-200 focus:outline-none focus:border-orange-500">
+                           class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm font-mono text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition">
                 </div>
+            </div>
 
-                <div id="uploadError" class="hidden bg-red-900/30 border border-red-500/40 text-red-300 px-4 py-3 rounded-lg text-sm"></div>
+            <div id="uploadError" class="hidden mt-4 bg-red-900/20 border border-red-500/40 text-red-300 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+                <span class="w-1 h-1 rounded-full bg-red-500"></span>
+                <span id="uploadErrorText"></span>
+            </div>
 
-                <button id="uploadBtn" onclick="uploadCSV()" class="bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold px-6 py-2.5 rounded-lg text-sm transition">
-                    Parse & Validate CSV
+            <div class="mt-6">
+                <button id="uploadBtn" onclick="uploadCSV()" 
+                        class="w-full sm:w-auto bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold px-8 py-3.5 rounded-xl text-sm transition shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2">
+                    🔍 Parse & Validate CSV
                 </button>
             </div>
         </section>
 
         <!-- Step 2: Human Approval & Review (HitL) -->
-        <section id="hitlSection" class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 shadow-lg opacity-50 pointer-events-none transition-all">
-            <div class="flex justify-between items-center mb-4">
+        <section id="hitlSection" class="bg-slate-900/80 border border-slate-700/60 rounded-2xl p-6 shadow-xl opacity-50 pointer-events-none transition-all">
+            <div class="flex justify-between items-center mb-6">
                 <h2 class="text-lg font-semibold text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-full bg-slate-700 text-slate-300 text-xs flex items-center justify-center font-bold" id="step2Badge">2</span>
+                    <span class="w-7 h-7 rounded-full bg-slate-700 text-slate-300 text-xs flex items-center justify-center font-bold" id="step2Badge">2</span>
                     Human Approval & Review (HitL)
                 </h2>
                 <div class="flex gap-2">
-                    <span class="text-xs font-mono bg-slate-700 text-slate-300 px-2 py-1 rounded">TC2: Case-Insensitive Dedup</span>
-                    <span class="text-xs font-mono bg-slate-700 text-slate-300 px-2 py-1 rounded">HitL Approval</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-mono">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span> TC2: Case-Insensitive Dedup
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-mono">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> HitL Gate
+                    </span>
                 </div>
             </div>
 
-            <div id="hitlSummary" class="text-sm text-slate-300 space-y-3">
-                <p class="text-slate-400">Awaiting CSV upload and parsing...</p>
+            <div id="hitlSummary" class="space-y-4 mb-6">
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">
+                    <p class="text-xs text-slate-500 mb-2">Upload a CSV to begin review</p>
+                    <div class="flex items-center justify-center h-24">
+                        <span class="text-slate-500 italic">Awaiting CSV upload...</span>
+                    </div>
+                </div>
             </div>
 
-            <div class="mt-5 flex gap-3">
-                <button id="approveBtn" onclick="approveAndRun()" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition flex items-center gap-2">
+            <!-- Per-record preview table (shown after upload) -->
+            <div id="hitlPreview" class="hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Records to Provision</h3>
+                    <span class="text-xs text-slate-500 font-mono" id="previewCount"></span>
+                </div>
+                <div class="overflow-x-auto rounded-xl border border-slate-700/50">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-900/50 text-xs uppercase text-slate-500">
+                            <tr>
+                                <th class="px-4 py-3">Email</th>
+                                <th class="px-4 py-3">CSV Role</th>
+                                <th class="px-4 py-3 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hitlPreviewBody" class="divide-y divide-slate-800/50">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="mt-6 flex gap-3">
+                <button id="approveBtn" onclick="approveAndRun()" disabled 
+                        class="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-xl transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2">
                     ⚡ Approve & Run Agent
                 </button>
             </div>
         </section>
 
         <!-- Step 3: Execution Audit Results -->
-        <section id="resultsSection" class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 shadow-lg opacity-50 pointer-events-none transition-all">
-            <div class="flex justify-between items-center mb-4">
+        <section id="resultsSection" class="bg-slate-900/80 border border-slate-700/60 rounded-2xl p-6 shadow-xl opacity-50 pointer-events-none transition-all">
+            <div class="flex justify-between items-center mb-6">
                 <h2 class="text-lg font-semibold text-white flex items-center gap-2">
-                    <span class="w-6 h-6 rounded-full bg-slate-700 text-slate-300 text-xs flex items-center justify-center font-bold" id="step3Badge">3</span>
+                    <span class="w-7 h-7 rounded-full bg-slate-700 text-slate-300 text-xs flex items-center justify-center font-bold" id="step3Badge">3</span>
                     Execution Audit Results
                 </h2>
                 <div class="flex gap-2">
-                    <span class="text-xs font-mono bg-slate-700 text-slate-300 px-2 py-1 rounded">TC3: Role Override</span>
-                    <span class="text-xs font-mono bg-slate-700 text-slate-300 px-2 py-1 rounded">TC4: Retry Loop</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-mono">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> TC3: Role Override
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-400 border border-orange-500/20 text-xs font-mono">
+                        <span class="w-2 h-2 rounded-full bg-orange-500"></span> TC4: Retry Loop
+                    </span>
                 </div>
             </div>
 
-            <div id="executionStatus" class="mb-4 text-sm text-slate-300"></div>
+            <div id="executionStatus" class="mb-5"></div>
 
-            <div class="overflow-x-auto rounded-lg border border-slate-700/60">
+            <!-- Stats Row -->
+            <div id="resultsStats" class="hidden grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
+                    <div class="text-xs text-slate-500 uppercase font-semibold">Total</div>
+                    <div class="text-lg font-mono text-slate-200" id="statTotal">0</div>
+                </div>
+                <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
+                    <div class="text-xs text-emerald-400 uppercase font-semibold">Created</div>
+                    <div class="text-lg font-mono text-emerald-400" id="statCreated">0</div>
+                </div>
+                <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
+                    <div class="text-xs text-amber-400 uppercase font-semibold">Skipped</div>
+                    <div class="text-lg font-mono text-amber-400" id="statSkipped">0</div>
+                </div>
+                <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
+                    <div class="text-xs text-red-400 uppercase font-semibold">Failed</div>
+                    <div class="text-lg font-mono text-red-400" id="statFailed">0</div>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-700/60">
                 <table class="w-full text-left text-sm text-slate-300">
-                    <thead class="bg-slate-900/80 text-xs uppercase text-slate-400 font-semibold border-b border-slate-700">
+                    <thead class="bg-slate-900/80 text-xs uppercase text-slate-400 font-semibold border-b border-slate-700 sticky top-0">
                         <tr>
-                            <th class="px-4 py-3">Email</th>
-                            <th class="px-4 py-3">Applied Role <span class="text-slate-500 normal-case">(TC3)</span></th>
-                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3 w-1/3">Email</th>
+                            <th class="px-4 py-3 w-1/6">CSV Role</th>
+                            <th class="px-4 py-3 w-1/6">Applied Role (TC3)</th>
+                            <th class="px-4 py-3 w-1/6">Status</th>
                             <th class="px-4 py-3">Verification Details</th>
                         </tr>
                     </thead>
                     <tbody id="resultsTableBody" class="divide-y divide-slate-800">
-                        <tr>
-                            <td colspan="4" class="px-4 py-6 text-center text-slate-500 italic">No execution audit results available yet.</td>
+                        <tr class="fade-in">
+                            <td colspan="5" class="px-4 py-10 text-center text-slate-500 italic">No execution audit results available yet.</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Retry Option for TC4 Demonstration -->
-            <div id="retryContainer" class="mt-5 hidden flex justify-between items-center border-t border-slate-800 pt-4">
-                <p class="text-xs text-slate-400">Need to process failed or pending items again?</p>
-                <button onclick="retryAgent()" class="bg-slate-700 hover:bg-slate-600 text-orange-400 border border-orange-500/30 font-semibold px-4 py-2 rounded-lg text-xs transition flex items-center gap-1.5">
+            <!-- Retry Option for TC4 -->
+            <div id="retryContainer" class="hidden mt-6 border border-slate-800/50 rounded-xl p-4 bg-slate-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-sm text-slate-400">
+                    <span class="w-1 h-1 rounded-full bg-orange-500 animate-pulse"></span>
+                    <span>Need to reprocess failed or pending records?</span>
+                </div>
+                <button onclick="retryAgent()" 
+                        class="bg-orange-900/20 hover:bg-orange-900/40 text-orange-400 border border-orange-500/30 font-semibold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2">
                     🔄 Retry Pending / Failed Records (TC4)
                 </button>
             </div>
@@ -128,7 +224,21 @@
     <script>
         let currentRunId = null;
         let activeRecords = [];
+        let filteredDuplicates = [];
         let filteredCount = 0;
+
+        function updateProgress(step) {
+            const widths = { 1: 0, 2: 33, 3: 66, 4: 100 };
+            document.getElementById('progressBar').style.width = widths[step] + '%';
+            document.getElementById('stepIndicator').textContent = `Step ${step} of 3`;
+        }
+
+        function updateFileName() {
+            const input = document.getElementById('csvFile');
+            if (input.files.length > 0) {
+                document.getElementById('fileButtonText').textContent = input.files[0].name;
+            }
+        }
 
         function updateFileName() {
             const input = document.getElementById('csvFile');
@@ -140,10 +250,11 @@
         async function uploadCSV() {
             const fileInput = document.getElementById('csvFile');
             const errorDiv = document.getElementById('uploadError');
+            const errorText = document.getElementById('uploadErrorText');
             errorDiv.classList.add('hidden');
 
             if (!fileInput.files.length) {
-                errorDiv.textContent = "Please select a CSV file first (or download the test CSV above).";
+                errorText.textContent = "Please select a CSV file first (or download the sample CSV above).";
                 errorDiv.classList.remove('hidden');
                 return;
             }
@@ -163,29 +274,71 @@
                 activeRecords = data.records;
                 filteredCount = data.filtered_duplicates;
 
-                // Unlock HitL Section
+                const seen = new Set();
+                filteredDuplicates = [];
+                activeRecords.forEach(r => {
+                    if (seen.has(r.email.toLowerCase())) {
+                        filteredDuplicates.push(r);
+                    } else {
+                        seen.add(r.email.toLowerCase());
+                    }
+                });
+
                 const hitl = document.getElementById('hitlSection');
                 hitl.classList.remove('opacity-50', 'pointer-events-none');
                 document.getElementById('step2Badge').classList.replace('bg-slate-700', 'bg-orange-500');
+                document.getElementById('approveBtn').disabled = false;
+                updateProgress(2);
 
                 let summaryHtml = `
-                    <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700 space-y-2">
-                        <div class="flex justify-between text-xs font-mono text-slate-400 border-b border-slate-800 pb-2">
-                            <span>RUN ID: <strong class="text-orange-400">${data.run_id}</strong></span>
-                            <span>FILE: <strong>${data.filename}</strong></span>
+                    <div class="bg-slate-900/60 p-5 rounded-xl border border-slate-700 shadow-inner">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex gap-3">
+                                <div class="text-xs font-mono text-slate-400">RUN ID</div>
+                                <div class="text-sm font-semibold text-orange-400 font-mono">${data.run_id}</div>
+                            </div>
+                            <div class="text-xs font-mono text-slate-400 text-right">
+                                <div class="text-sm font-semibold text-slate-200">${data.filename}</div>
+                            </div>
                         </div>
-                        <div class="flex gap-4 pt-1 text-sm">
-                            <span class="text-emerald-400 font-semibold">✓ ${data.total_records} Active Records Queued</span>
-                            <span class="text-amber-400 font-semibold">⚠️ ${data.filtered_duplicates} Duplicates Stripped (TC2)</span>
+                        <div class="flex gap-6 pt-3 text-sm">
+                            <div class="flex items-center gap-2 text-emerald-400 font-semibold">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                <span>${data.total_records} Active Records Queued</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-amber-400 font-semibold">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                <span>${data.filtered_duplicates} Duplicates Stripped (TC2)</span>
+                            </div>
                         </div>
                     </div>
                 `;
-                
                 document.getElementById('hitlSummary').innerHTML = summaryHtml;
-                document.getElementById('approveBtn').disabled = false;
+
+                const previewBody = document.getElementById('hitlPreviewBody');
+                previewBody.innerHTML = '';
+                activeRecords.forEach((rec, i) => {
+                    const isDuplicate = filteredDuplicates.includes(rec);
+                    const tr = document.createElement('tr');
+                    tr.className = `fade-in group ${isDuplicate ? 'opacity-60' : ''}`;
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 font-mono text-slate-200">${rec.email}</td>
+                        <td class="px-4 py-3 font-mono text-slate-300">${rec.role || 'Member'}</td>
+                        <td class="px-4 py-3 text-center">
+                            ${isDuplicate 
+                                ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-900/30 text-amber-400 border border-amber-500/30 text-[10px] font-bold">Skipped (TC2)</span>'
+                                : '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-900/30 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">Create</span>'
+                            }
+                        </td>
+                    `;
+                    previewBody.appendChild(tr);
+                });
+
+                document.getElementById('previewCount').textContent = `${activeRecords.length} records${filteredCount > 0 ? ` (${filteredCount} duplicates filtered)` : ''}`;
+                document.getElementById('hitlPreview').classList.remove('hidden');
 
             } catch (err) {
-                errorDiv.textContent = `[TC1 Validation Error]: ${err.message}`;
+                errorText.textContent = `[TC1 Validation Error] ${err.message}`;
                 errorDiv.classList.remove('hidden');
             }
         }
@@ -196,36 +349,36 @@
             const consoleUrl = document.getElementById('targetUrl').value;
             const approveBtn = document.getElementById('approveBtn');
             approveBtn.disabled = true;
-            approveBtn.textContent = "Approving Run...";
+            approveBtn.innerHTML = '<span class="flex items-center gap-2"><span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> Approving...</span>';
 
             try {
-                // Step A: Approve via HitL gate
                 const appRes = await fetch('/api/approve-run', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ run_id: currentRunId })
                 });
-
                 if (!appRes.ok) throw new Error("Approval gate rejected execution.");
 
-                // Unlock Results Section & show execution UI
                 const resultsSec = document.getElementById('resultsSection');
                 resultsSec.classList.remove('opacity-50', 'pointer-events-none');
                 document.getElementById('step3Badge').classList.replace('bg-slate-700', 'bg-orange-500');
-                
+                updateProgress(3);
+
                 document.getElementById('executionStatus').innerHTML = `
-                    <div class="flex items-center gap-2 text-orange-400 animate-pulse font-medium">
-                        <span>🤖 Agent execution in progress via Playwright & Browserbase...</span>
+                    <div class="flex items-center gap-3 p-4 bg-orange-900/20 border border-orange-500/30 rounded-xl">
+                        <div class="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div>
+                            <div class="text-orange-400 font-semibold text-sm">Agent execution in progress</div>
+                            <div class="text-xs text-slate-400 mt-1">Playwright • Browserbase • Console DOM read-back</div>
+                        </div>
                     </div>
                 `;
 
-                // Step B: Trigger Agent Execution
                 executeAgent(consoleUrl);
-
             } catch (err) {
                 alert(`Error during approval/agent execution: ${err.message}`);
                 approveBtn.disabled = false;
-                approveBtn.textContent = "⚡ Approve & Run Agent";
+                approveBtn.innerHTML = '⚡ Approve & Run Agent';
             }
         }
 
@@ -236,15 +389,18 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ run_id: currentRunId, console_url: consoleUrl })
                 });
-
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || "Agent execution failed.");
-
                 renderResultsTable(data.results);
-
             } catch (err) {
                 document.getElementById('executionStatus').innerHTML = `
-                    <div class="text-red-400 font-semibold">❌ Agent execution error: ${err.message}</div>
+                    <div class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="w-1 h-1 rounded-full bg-red-500"></span>
+                            <span class="text-red-400 font-semibold">❌ Agent execution error</span>
+                        </div>
+                        <div class="text-sm text-red-300">${err.message}</div>
+                    </div>
                 `;
             }
         }
@@ -252,8 +408,12 @@
         async function retryAgent() {
             const consoleUrl = document.getElementById('targetUrl').value;
             document.getElementById('executionStatus').innerHTML = `
-                <div class="flex items-center gap-2 text-amber-400 animate-pulse font-medium">
-                    <span>🔄 Executing TC4 Retry Loop for remaining failed/pending records...</span>
+                <div class="flex items-center gap-3 p-4 bg-amber-900/20 border border-amber-500/30 rounded-xl">
+                    <div class="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div>
+                        <div class="text-amber-400 font-semibold text-sm">TC4 Retry Loop in progress</div>
+                        <div class="text-xs text-slate-400 mt-1">Re-processing pending/failed records only</div>
+                    </div>
                 </div>
             `;
             executeAgent(consoleUrl);
@@ -261,43 +421,90 @@
 
         function renderResultsTable(results) {
             document.getElementById('executionStatus').innerHTML = `
-                <div class="text-emerald-400 font-medium flex items-center gap-2">
-                    <span>✨ Execution completed for ${currentRunId}. State persisted to SQLite.</span>
+                <div class="flex items-center gap-3 p-4 bg-emerald-900/20 border border-emerald-500/30 rounded-xl mb-4">
+                    <span class="text-emerald-400">✓</span>
+                    <div>
+                        <div class="text-emerald-400 font-semibold text-sm">Execution completed for <span class="font-mono">${currentRunId}</span></div>
+                        <div class="text-xs text-slate-400 mt-1">State persisted to SQLite • Console DOM read-back verified</div>
+                    </div>
                 </div>
             `;
+
+            const total = results.length;
+            const created = results.filter(r => r.status === 'success').length;
+            const skipped = results.filter(r => r.status === 'skipped').length;
+            const failed = results.filter(r => r.status === 'failed').length;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statCreated').textContent = created;
+            document.getElementById('statSkipped').textContent = skipped;
+            document.getElementById('statFailed').textContent = failed;
+            document.getElementById('resultsStats').classList.remove('hidden');
 
             const tbody = document.getElementById('resultsTableBody');
             tbody.innerHTML = '';
 
-            let hasFailures = false;
+            const csvRoleMap = {};
+            activeRecords.forEach(r => { csvRoleMap[r.email.toLowerCase()] = r.role || 'Member'; });
 
-            results.forEach(rec => {
+            results.forEach((rec, i) => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/40 transition";
+                tr.className = `fade-in group hover:bg-slate-800/30 transition border-b border-slate-800/50 last:border-0`;
 
-                let statusBadge = "";
+                const csvRole = csvRoleMap[rec.email.toLowerCase()] || 'Member';
+                const appliedRole = rec.role || 'Member';
+                const roleChanged = csvRole.toLowerCase() !== appliedRole.toLowerCase();
+
+                let statusBadge, statusIcon, statusColor;
                 if (rec.status === 'success') {
-                    statusBadge = `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-xs font-semibold">Created / Verified</span>`;
+                    statusBadge = 'Created / Verified';
+                    statusIcon = '✓';
+                    statusColor = 'emerald';
                 } else if (rec.status === 'skipped') {
-                    statusBadge = `<span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-xs font-semibold">Skipped (TC2)</span>`;
+                    statusBadge = 'Skipped (TC2)';
+                    statusIcon = '⚠';
+                    statusColor = 'amber';
                 } else {
-                    hasFailures = true;
-                    statusBadge = `<span class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-xs font-semibold">Failed</span>`;
+                    statusBadge = 'Failed';
+                    statusIcon = '✗';
+                    statusColor = 'red';
                 }
 
-                // TC3 Explicit Verification note
-                const roleNote = rec.role ? `<span class="font-mono text-slate-200">${rec.role}</span> <span class="text-xs text-emerald-400/80 ml-1">(Overrode UI default)</span>` : 'Member';
+                const verificationText = rec.error 
+                    ? `<span class="text-red-400 font-mono text-[11px]">${rec.error}</span>`
+                    : 'Verified via console DOM read-back';
 
                 tr.innerHTML = `
-                    <td class="px-4 py-3 font-mono text-slate-200">${rec.email}</td>
-                    <td class="px-4 py-3">${roleNote}</td>
-                    <td class="px-4 py-3">${statusBadge}</td>
-                    <td class="px-4 py-3 text-xs text-slate-400">${rec.error ? `<span class="text-red-400">${rec.error}</span>` : 'Verified via console DOM read-back'}</td>
+                    <td class="px-4 py-4 font-mono text-slate-200">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded bg-slate-800 flex items-center justify-center text-xs text-slate-400">${i + 1}</span>
+                            ${rec.email}
+                        </div>
+                    </td>
+                    <td class="px-4 py-4 font-mono text-slate-400">${csvRole}</td>
+                    <td class="px-4 py-4">
+                        <div class="flex items-center gap-2">
+                            <span class="font-mono text-slate-200">${appliedRole}</span>
+                            ${roleChanged 
+                                ? '<span class="text-[10px] bg-emerald-900/30 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded">Normalized (TC3)</span>'
+                                : '<span class="text-[10px] text-slate-500">As-is</span>'
+                            }
+                        </div>
+                    </td>
+                    <td class="px-4 py-4">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold border 
+                            ${statusColor === 'emerald' ? 'bg-emerald-900/30 text-emerald-400 border-emerald-500/30' : 
+                              statusColor === 'amber' ? 'bg-amber-900/30 text-amber-400 border-amber-500/30' : 
+                              'bg-red-900/30 text-red-400 border-red-500/30'}"
+                        >
+                            ${statusIcon} ${statusBadge}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 text-xs text-slate-400 font-mono">${verificationText}</td>
                 `;
                 tbody.appendChild(tr);
             });
 
-            // Show TC4 retry block
             document.getElementById('retryContainer').classList.remove('hidden');
         }
     </script>
