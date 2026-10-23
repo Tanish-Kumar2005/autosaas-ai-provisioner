@@ -11,6 +11,24 @@
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         .fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Loading spinner */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-spin-custom { animation: spin 1s linear infinite; }
+
+        /* Dot pulse for sequential checking */
+        @keyframes dotPulse { 0%,80%,100% { transform: scale(0.95); opacity: 0.5; } 40% { transform: scale(1.2); opacity: 1; } }
+        .dot-pulse { animation: dotPulse 1.5s infinite; }
+
+        /* Step checkmark animation */
+        @keyframes checkPop { 0% { transform: scale(0); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        .check-pop { animation: checkPop 0.4s ease-out forwards; }
+
+        /* Loading panel */
+        #loadingPanel {
+            backdrop-filter: blur(8px);
+            background: rgba(15, 23, 42, 0.85);
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased p-6">
@@ -39,10 +57,33 @@
         <!-- Step Progress Tracker -->
         <div class="flex items-center gap-2 mb-4">
             <div class="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
-                <div id="progressBar" class="h-full bg-orange-500 w-0 transition-all duration-500"></div>
+                <div id="progressBar" class="h-full bg-orange-500 w-0 transition-all duration-700"></div>
             </div>
             <div class="flex items-center gap-1 text-xs text-slate-400 font-mono">
                 <span id="stepIndicator">Step 1 of 3</span>
+            </div>
+        </div>
+
+        <!-- Loading Panel (shown during CSV validation & TC checking) -->
+        <div id="loadingPanel" class="hidden fixed inset-0 z-50 flex flex-col items-center justify-center">
+            <div class="bg-slate-900/95 border border-slate-700/50 rounded-2xl p-8 max-w-md w-full shadow-2xl backdrop-blur-sm">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400">
+                        <div class="animate-spin-custom w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                    </div>
+                    <h3 class="text-lg font-semibold text-white">Running Test Case Validation</h3>
+                </div>
+
+                <div class="space-y-4" id="tcChecklist">
+                    <!-- TC items injected via JS -->
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-slate-800/50">
+                    <div class="flex items-center gap-2 text-sm text-slate-400 font-mono">
+                        <span class="w-2 h-2 rounded-full bg-slate-500 animate-pulse"></span>
+                        <span id="loadingStatus">Initializing...</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -219,16 +260,9 @@
         let filteredCount = 0;
 
         function updateProgress(step) {
-            const widths = { 1: 0, 2: 33, 3: 66, 4: 100 };
+            const widths = { 1: 0, 2: 50, 3: 100 };
             document.getElementById('progressBar').style.width = widths[step] + '%';
             document.getElementById('stepIndicator').textContent = `Step ${step} of 3`;
-        }
-
-        function updateFileName() {
-            const input = document.getElementById('csvFile');
-            if (input.files.length > 0) {
-                document.getElementById('fileButtonText').textContent = input.files[0].name;
-            }
         }
 
         function updateFileName() {
@@ -250,6 +284,62 @@
                 return;
             }
 
+            // Show loading panel
+            document.getElementById('loadingPanel').classList.remove('hidden');
+            document.getElementById('loadingStatus').textContent = "Initializing validation...";
+
+            // Define TC steps for sequential checking
+            const tcSteps = [
+                { id: 'tc1', label: 'TC1: Auto-Validation', detail: 'Checking CSV structure & required columns...' },
+                { id: 'tc2', label: 'TC2: Case-Insensitive Dedup', detail: 'Detecting & stripping duplicate emails...' },
+                { id: 'tc3', label: 'TC3: Role Override', detail: 'Preparing role normalization map...' }
+            ];
+
+            // Render checklist
+            const container = document.getElementById('tcChecklist');
+            container.innerHTML = tcSteps.map((tc, i) => `
+                <div class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700/30" id="${tc.id}-row">
+                    <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-mono text-slate-400" id="${tc.id}-badge">
+                        ${i + 1}
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-sm font-semibold text-slate-200">${tc.label}</div>
+                        <div class="text-xs text-slate-500 font-mono">${tc.detail}</div>
+                    </div>
+                    <div class="w-2 h-2 rounded-full bg-slate-500" id="${tc.id}-dot"></div>
+                </div>
+            `).join('');
+
+            // Sequential animation
+            const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+            const setTcStatus = (tcId, status) => {
+                const row = document.getElementById(`${tcId}-row`);
+                const badge = document.getElementById(`${tcId}-badge`);
+                const dot = document.getElementById(`${tcId}-dot`);
+                if (status === 'checking') {
+                    row.className = 'flex items-center gap-3 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30';
+                    badge.className = 'w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-xs font-mono text-white check-pop';
+                    badge.textContent = '●';
+                    dot.className = 'w-2 h-2 rounded-full bg-orange-500 dot-pulse';
+                } else if (status === 'done') {
+                    row.className = 'flex items-center gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30';
+                    badge.className = 'w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-xs font-mono text-white check-pop';
+                    badge.innerHTML = '✓';
+                    dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+                }
+            };
+
+            for (const tc of tcSteps) {
+                await setTcStatus(tc.id, 'checking');
+                document.getElementById('loadingStatus').textContent = `${tc.label}...`;
+                await sleep(700);
+                await setTcStatus(tc.id, 'done');
+                await sleep(300);
+            }
+
+            document.getElementById('loadingStatus').textContent = "Uploading to server...";
+            await sleep(400);
+
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
 
@@ -260,6 +350,14 @@
                 if (!response.ok) {
                     throw new Error(data.detail || "Failed to parse CSV file.");
                 }
+
+                // Mark all TCs done and hide loading panel
+                for (const tc of tcSteps) {
+                    await setTcStatus(tc.id, 'done');
+                }
+                document.getElementById('loadingStatus').textContent = "Validation complete!";
+                await sleep(400);
+                document.getElementById('loadingPanel').classList.add('hidden');
 
                 currentRunId = data.run_id;
                 activeRecords = data.records;
