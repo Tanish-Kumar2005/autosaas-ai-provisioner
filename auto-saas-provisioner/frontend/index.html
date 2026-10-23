@@ -9,8 +9,6 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
-        .loading-dots::after { content: '...'; animation: loadingText 1.5s infinite; }
-        @keyframes loadingText { 0%,100% { content: '.'; } 33% { content: '..'; } 66% { content: '...'; } }
         .fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -18,7 +16,7 @@
 <body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased p-6">
     <div class="max-w-6xl mx-auto space-y-8">
         
-        <!-- Progress Header -->
+        <!-- Header -->
         <header class="border-b border-slate-800 pb-6 mb-2">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
@@ -48,7 +46,7 @@
             </div>
         </div>
 
-        <!-- Step 1: Upload CSV & Set Target URL -->
+        <!-- Step 1: Upload CSV -->
         <section id="step1Section" class="bg-slate-900/80 border border-slate-700/60 rounded-2xl p-6 shadow-xl relative group">
             <div class="absolute top-6 right-6">
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-400 border border-orange-500/20 text-xs font-mono">
@@ -58,38 +56,31 @@
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-lg font-semibold text-white flex items-center gap-2">
                     <span class="w-7 h-7 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center font-bold">1</span>
-                    Upload User CSV & Set Target URL
+                    Upload User CSV
                 </h2>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="col-span-1 sm:col-span-2">
-                    <div class="flex items-center gap-3">
-                        <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="updateFileName()">
-                        <button onclick="document.getElementById('csvFile').click()" 
-                                class="w-full sm:w-auto bg-orange-600 hover:bg-orange-500 text-white px-5 py-3 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20">
-                            📄 <span id="fileButtonText">Choose CSV File</span>
-                        </button>
-                    </div>
-                    <p class="text-xs text-slate-500 mt-2">Expected format: <code class="bg-slate-800 px-1.5 py-0.5 rounded text-orange-300">email,role</code></p>
+            <div class="space-y-4">
+                <div class="flex items-center gap-3">
+                    <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="updateFileName()">
+                    <button onclick="document.getElementById('csvFile').click()" 
+                            class="w-full bg-orange-600 hover:bg-orange-500 text-white px-6 py-4 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20">
+                        📄 <span id="fileButtonText">Choose CSV File</span>
+                    </button>
                 </div>
-                <div class="col-span-1 sm:col-span-1">
-                    <input type="text" id="targetUrl" value="https://autosaas-ai-provisioner.onrender.com/static/mock_console.html" 
-                           placeholder="Target Console URL" 
-                           class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm font-mono text-slate-200 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition">
+                <p class="text-xs text-slate-500">Expected format: <code class="bg-slate-800 px-1.5 py-0.5 rounded text-orange-300">email,role</code></p>
+
+                <div id="uploadError" class="hidden bg-red-900/20 border border-red-500/40 text-red-300 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+                    <span class="w-1 h-1 rounded-full bg-red-500"></span>
+                    <span id="uploadErrorText"></span>
                 </div>
-            </div>
 
-            <div id="uploadError" class="hidden mt-4 bg-red-900/20 border border-red-500/40 text-red-300 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-                <span class="w-1 h-1 rounded-full bg-red-500"></span>
-                <span id="uploadErrorText"></span>
-            </div>
-
-            <div class="mt-6">
-                <button id="uploadBtn" onclick="uploadCSV()" 
-                        class="w-full sm:w-auto bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold px-8 py-3.5 rounded-xl text-sm transition shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2">
-                    🔍 Parse & Validate CSV
-                </button>
+                <div class="mt-6">
+                    <button id="uploadBtn" onclick="uploadCSV()" 
+                            class="w-full bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold px-8 py-3.5 rounded-xl text-sm transition shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2">
+                        🔍 Parse & Validate CSV
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -346,7 +337,6 @@
         async function approveAndRun() {
             if (!currentRunId) return;
 
-            const consoleUrl = document.getElementById('targetUrl').value;
             const approveBtn = document.getElementById('approveBtn');
             approveBtn.disabled = true;
             approveBtn.innerHTML = '<span class="flex items-center gap-2"><span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> Approving...</span>';
@@ -374,7 +364,7 @@
                     </div>
                 `;
 
-                executeAgent(consoleUrl);
+                executeAgent();
             } catch (err) {
                 alert(`Error during approval/agent execution: ${err.message}`);
                 approveBtn.disabled = false;
@@ -382,12 +372,12 @@
             }
         }
 
-        async function executeAgent(consoleUrl) {
+        async function executeAgent() {
             try {
                 const response = await fetch('/api/run-agent', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ run_id: currentRunId, console_url: consoleUrl })
+                    body: JSON.stringify({ run_id: currentRunId, console_url: "https://autosaas-ai-provisioner.onrender.com/static/mock_console.html" })
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || "Agent execution failed.");
@@ -406,7 +396,6 @@
         }
 
         async function retryAgent() {
-            const consoleUrl = document.getElementById('targetUrl').value;
             document.getElementById('executionStatus').innerHTML = `
                 <div class="flex items-center gap-3 p-4 bg-amber-900/20 border border-amber-500/30 rounded-xl">
                     <div class="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
@@ -416,7 +405,7 @@
                     </div>
                 </div>
             `;
-            executeAgent(consoleUrl);
+            executeAgent();
         }
 
         function renderResultsTable(results) {
