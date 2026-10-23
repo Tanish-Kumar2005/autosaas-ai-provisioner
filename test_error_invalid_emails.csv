@@ -1,0 +1,5 @@
+email,role
+invalid-email,Admin
+not-an-email@,Manager
+@@@bad@@@,Member
+alex.jones@company.com,Admin

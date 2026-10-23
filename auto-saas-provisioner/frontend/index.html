@@ -46,11 +46,6 @@
                     </h1>
                     <p class="text-slate-400 text-sm mt-1">Autonomous user provisioning with HitL verification & resilient compliance</p>
                 </div>
-                <a href="data:text/csv;charset=utf-8,email,role%0Aalex.jones@company.com,Admin%0ASARAH.CONNOR@COMPANY.COM,manager%0Aalex.jones@company.com,Member%0Adavid.miller@company.com,member" 
-                   download="sample_provisioning.csv" 
-                   class="flex items-center gap-2 px-3 py-1.5 bg-orange-900/20 border border-orange-500/30 rounded-lg text-xs text-orange-400 hover:bg-orange-900/40 hover:border-orange-500/50 transition flex sm:inline">
-                    📥 Sample CSV (TC1/TC2/TC3)
-                </a>
             </div>
         </header>
 
@@ -459,10 +454,13 @@
                             <div class="text-orange-400 font-semibold text-sm">Agent execution in progress</div>
                             <div class="text-xs text-slate-400 mt-1">Playwright • Browserbase • Console DOM read-back</div>
                         </div>
+                        <div class="ml-auto">
+                            <div class="text-xs font-mono text-slate-400" id="executionProgress">0%</div>
+                        </div>
                     </div>
                 `;
 
-                executeAgent();
+                await executeAgentWithProgress();
             } catch (err) {
                 alert(`Error during approval/agent execution: ${err.message}`);
                 approveBtn.disabled = false;
@@ -493,6 +491,43 @@
             }
         }
 
+        async function executeAgentWithProgress() {
+            const totalRecords = activeRecords.length;
+            let completedRecords = 0;
+            const progressInterval = setInterval(() => {
+                completedRecords = Math.min(completedRecords + 1, totalRecords);
+                const pct = Math.round((completedRecords / totalRecords) * 100);
+                document.getElementById('executionProgress').textContent = pct + '%';
+                if (completedRecords >= totalRecords) clearInterval(progressInterval);
+            }, 200);
+            try {
+                const response = await fetch('/api/run-agent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ run_id: currentRunId, console_url: "https://autosaas-ai-provisioner.onrender.com/static/mock_console.html" })
+                });
+                clearInterval(progressInterval);
+                document.getElementById('executionProgress').textContent = '100%';
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || "Agent execution failed.");
+                renderResultsTable(data.results);
+            } catch (err) {
+                clearInterval(progressInterval);
+                document.getElementById('executionStatus').innerHTML = `
+                    <div class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="w-1 h-1 rounded-full bg-red-500"></span>
+                            <span class="text-red-400 font-semibold">❌ Agent execution error</span>
+                        </div>
+                        <div class="text-sm text-red-300">${err.message}</div>
+                    </div>
+                `;
+                const approveBtn = document.getElementById('approveBtn');
+                approveBtn.disabled = false;
+                approveBtn.innerHTML = '⚡ Approve & Run Agent';
+            }
+        }
+
         async function retryAgent() {
             document.getElementById('executionStatus').innerHTML = `
                 <div class="flex items-center gap-3 p-4 bg-amber-900/20 border border-amber-500/30 rounded-xl">
@@ -503,7 +538,7 @@
                     </div>
                 </div>
             `;
-            executeAgent();
+            executeAgentWithProgress();
         }
 
         function renderResultsTable(results) {
@@ -593,6 +628,25 @@
             });
 
             document.getElementById('retryContainer').classList.remove('hidden');
+            showSampleCsvDownload();
+        }
+
+        // Show sample CSV download only after successful execution
+        function showSampleCsvDownload() {
+            const existing = document.getElementById('sampleCsvBottom');
+            if (existing) existing.remove();
+            
+            const downloadLink = document.createElement('div');
+            downloadLink.id = 'sampleCsvBottom';
+            downloadLink.className = 'mt-8 flex justify-center';
+            downloadLink.innerHTML = `
+                <a href="data:text/csv;charset=utf-8,email,role%0Aalex.jones@company.com,Admin%0ASARAH.CONNOR@COMPANY.COM,manager%0Aalex.jones@company.com,Member%0Adavid.miller@company.com,member" 
+                   download="sample_provisioning.csv" 
+                   class="flex items-center gap-2 px-4 py-2 bg-orange-900/20 border border-orange-500/30 rounded-lg text-xs text-orange-400 hover:bg-orange-900/40 hover:border-orange-500/50 transition shadow-lg shadow-orange-500/20">
+                    📥 Download Sample CSV (TC1/TC2/TC3)
+                </a>
+            `;
+            document.querySelector('.max-w-6xl.mx-auto.space-y-8').appendChild(downloadLink);
         }
     </script>
 </body>
