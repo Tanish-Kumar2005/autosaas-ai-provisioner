@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>AutoSaaS AI - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-900 text-slate-100 min-h-screen p-8">
+
+    <div class="max-w-4xl mx-auto space-y-6">
+
+        <header class="border-b border-slate-800 pb-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-orange-500">AutoSaaS AI Provisioner</h1>
+                <p class="text-sm text-slate-400">Ziro Digital Agentic AI Hackathon 2026</p>
+            </div>
+            <span id="runBadge" class="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1 rounded-full font-mono">No Active Run</span>
+        </header>
+
+        <!-- Step 1: Upload CSV -->
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
+            <h2 class="font-semibold text-lg">1. Upload User CSV & Set Target URL</h2>
+            <input type="file" id="csvFile" accept=".csv" class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer"/>
+            <input type="text" id="consoleUrl" placeholder="Target Mock Console URL (e.g., file:///.../mock_console.html)" value="http://127.0.0.1:8080/mock_console.html" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500"/>
+            <button onclick="uploadCSV()" class="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">Parse & Validate CSV</button>
+            <div id="uploadError" class="text-sm text-red-400 hidden"></div>
+        </div>
+
+        <!-- Step 2: Human Approval Gate -->
+        <div id="reviewSection" class="bg-slate-800 p-6 rounded-xl border border-slate-700 hidden space-y-4">
+            <h2 class="font-semibold text-lg text-amber-400">2. Human Approval & Review (HitL)</h2>
+            <p id="summaryText" class="text-sm text-slate-300"></p>
+            <button id="approveBtn" onclick="executeAgent()" class="bg-emerald-600 hover:bg-emerald-700 px-6 py-2 rounded-lg text-sm font-bold transition cursor-pointer">Approve & Run Agent</button>
+        </div>
+
+        <!-- Step 3: Results Audit Log -->
+        <div id="resultsSection" class="bg-slate-800 p-6 rounded-xl border border-slate-700 hidden space-y-4">
+            <h2 class="font-semibold text-lg text-emerald-400">3. Execution Audit Results</h2>
+            <div id="statusMessage" class="text-sm text-slate-300 font-mono">Connecting to agent environment...</div>
+            
+            <div class="overflow-x-auto border border-slate-700 rounded-lg">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-900 text-slate-400 text-xs uppercase border-b border-slate-700">
+                        <tr>
+                            <th class="p-3">Email</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3">Verification / Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultTableBody" class="divide-y divide-slate-700 text-slate-200">
+                        <tr>
+                            <td colspan="3" class="p-4 text-center text-slate-500">Waiting for execution completion...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    
+    </div>
+
+    <script>
+        let currentRunId = null;
+
+        async function uploadCSV() {
+            const fileInput = document.getElementById('csvFile').files[0];
+            const uploadError = document.getElementById('uploadError');
+
+            uploadError.classList.add('hidden');
+
+            if (!fileInput) {
+                alert("Please select a CSV file first!");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", fileInput);
+
+            try {
+                const res = await fetch('http://localhost:8000/api/upload-csv', { 
+                    method: 'POST', 
+                    body: formData 
+                });
+                
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.detail || "Failed to upload and validate CSV.");
+                }
+
+                currentRunId = data.run_id;
+                document.getElementById('runBadge').innerText = currentRunId;
+                document.getElementById('reviewSection').classList.remove('hidden');
+                
+                const dupCount = data.filtered_duplicates !== undefined ? data.filtered_duplicates : 0;
+                document.getElementById('summaryText').innerText = `Parsed ${data.total_records} unique active user(s). Filtered out ${dupCount} duplicate email(s) via TC2 rule. Run ID: ${data.run_id}. Ready for execution approval.`;
+            } catch (err) {
+                uploadError.innerText = `❌ ${err.message}`;
+                uploadError.classList.remove('hidden');
+            }
+        }
+
+        async function executeAgent() {
+            if (!currentRunId) return;
+
+            const consoleUrl = document.getElementById('consoleUrl').value;
+            const approveBtn = document.getElementById('approveBtn');
+            const statusMessage = document.getElementById('statusMessage');
+            const tbody = document.getElementById('resultTableBody');
+
+            approveBtn.disabled = true;
+            approveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            try {
+                // 1. Authorize execution via server-side HitL Approval check
+                const approveRes = await fetch('http://localhost:8000/api/approve-run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ run_id: currentRunId })
+                });
+
+                if (!approveRes.ok) {
+                    const approveErr = await approveRes.json();
+                    throw new Error(approveErr.detail || "Server approval failed.");
+                }
+
+                // 2. Display execution state and trigger agent execution
+                document.getElementById('resultsSection').classList.remove('hidden');
+                statusMessage.innerText = "🤖 Agent executing... automating browser modal actions and performing table read-back verification...";
+                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-amber-400 animate-pulse">Running Playwright browser automation...</td></tr>`;
+
+                const res = await fetch('http://localhost:8000/api/run-agent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ run_id: currentRunId, console_url: consoleUrl })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.detail || "Agent execution failed.");
+                }
+
+                statusMessage.innerText = `✨ Execution completed for ${data.run_id}. Audit records updated in SQLite.`;
+                
+                tbody.innerHTML = '';
+                data.results.forEach(record => {
+                    const statusBadge = record.status === 'success' 
+                        ? '<span class="bg-emerald-900/60 text-emerald-400 border border-emerald-700 px-2.5 py-1 rounded text-xs font-semibold">Created / Verified</span>'
+                        : '<span class="bg-red-900/60 text-red-400 border border-red-700 px-2.5 py-1 rounded text-xs font-semibold">Failed</span>';
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-800/50">
+                            <td class="p-3 font-mono text-xs text-slate-300">${record.email}</td>
+                            <td class="p-3">${statusBadge}</td>
+                            <td class="p-3 text-xs text-slate-400">${record.error || 'Verified via console read-back'}</td>
+                        </tr>
+                    `;
+                });
+
+            } catch (err) {
+                statusMessage.innerHTML = `<span class="text-red-400">❌ Execution Error: ${err.message}</span>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-red-400">Run aborted. Check backend logs or URL availability.</td></tr>`;
+                approveBtn.disabled = false;
+                approveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+    </script>
+
+</body>
+
+</html>
