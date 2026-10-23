@@ -2,6 +2,7 @@ import io
 import uuid
 import shutil
 import os
+import sqlite3
 import pandas as pd
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -129,27 +130,31 @@ def approve_run(payload: dict):
 
 @app.post("/api/run-agent")
 def run_agent(payload: dict):
-    """Triggers the Browserbase agent using the provided run_id and mock console URL after HitL approval check."""
+    """Triggers the Browserbase agent using run_id and console URL, supporting TC4 retries for failed/pending records."""
     run_id = payload.get("run_id")
     console_url = payload.get("console_url")
 
     if not run_id or not console_url:
         raise HTTPException(status_code=400, detail="run_id and console_url are required.")
 
-    # Enforce Server-Side HitL Approval check
-    import sqlite3
     conn = sqlite3.connect("provisioner_state.db")
     cursor = conn.cursor()
     cursor.execute("SELECT status FROM runs WHERE run_id = ?", (run_id,))
     row = cursor.fetchone()
+    
+    # Check if there are any non-success records that warrant a retry (TC4 support)
+    cursor.execute("SELECT COUNT(*) FROM records WHERE run_id = ? AND status != 'success'", (run_id,))
+    retry_needed_count = cursor.fetchone()[0]
     conn.close()
 
     if not row:
         raise HTTPException(status_code=404, detail="Run ID not found.")
     
     current_status = row[0]
-    if current_status not in ["approved", "pending"]:
-        raise HTTPException(status_code=400, detail=f"Run cannot be executed because its status is '{current_status}'. Approval required.")
+    
+    # Enforce Server-Side HitL Approval or allow retry if failed/pending records exist
+    if current_status not in ["approved", "pending"] and retry_needed_count == 0:
+        raise HTTPException(status_code=400, detail=f"Run status is '{current_status}' and all records are already successful.")
 
     # Instantiate and run our agent
     agent = BrowserbaseProvisioningAgent(run_id)
