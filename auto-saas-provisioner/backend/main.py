@@ -80,6 +80,16 @@ async def upload_csv(file: UploadFile = File(...)):
         df['email'] = df['email'].astype(str).str.strip().str.lower()
         df['role'] = df['role'].astype(str).str.strip()
 
+        # TC1: Validate email format
+        import re
+        email_pattern = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+        invalid_emails = df[~df['email'].str.match(email_pattern)]['email'].tolist()
+        if invalid_emails:
+            raise HTTPException(
+                status_code=400,
+                detail=f"TC1 Validation Error: Invalid email format found: {', '.join(invalid_emails[:5])}{'...' if len(invalid_emails) > 5 else ''}"
+            )
+
         initial_count = len(df)
         df = df.drop_duplicates(subset=["email"], keep="first")
         filtered_count = initial_count - len(df)

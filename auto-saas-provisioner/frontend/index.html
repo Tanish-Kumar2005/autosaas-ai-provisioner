@@ -74,9 +74,10 @@
                 </div>
 
                 <div class="mt-6 pt-6 border-t border-slate-800/50">
-                    <div class="flex items-center gap-2 text-sm text-slate-400 font-mono">
+                    <div class="flex items-center justify-between text-sm text-slate-400 font-mono">
                         <span class="w-2 h-2 rounded-full bg-slate-500 animate-pulse"></span>
                         <span id="loadingStatus">Initializing...</span>
+                        <span id="tcPercentage">0%</span>
                     </div>
                 </div>
             </div>
@@ -305,7 +306,7 @@
                 </div>
             `).join('');
 
-            // Sequential animation
+            // Sequential animation with percentage
             const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
             const setTcStatus = (tcId, status) => {
                 const row = document.getElementById(`${tcId}-row`);
@@ -324,11 +325,21 @@
                 }
             };
 
+            // Show percentage during TC checking
+            const tcTotal = tcSteps.length;
+            let tcCompleted = 0;
+            const updateTcPercentage = () => {
+                const pct = Math.round((tcCompleted / tcTotal) * 33); // TC checking is 33% of total
+                document.getElementById('tcPercentage').textContent = pct + '%';
+            };
+
             for (const tc of tcSteps) {
                 await setTcStatus(tc.id, 'checking');
                 document.getElementById('loadingStatus').textContent = `${tc.label}...`;
                 await sleep(700);
                 await setTcStatus(tc.id, 'done');
+                tcCompleted++;
+                updateTcPercentage();
                 await sleep(300);
             }
 
@@ -422,6 +433,7 @@
                 document.getElementById('hitlPreview').classList.remove('hidden');
 
             } catch (err) {
+                document.getElementById('loadingPanel').classList.add('hidden');
                 errorText.textContent = `[TC1 Validation Error] ${err.message}`;
                 errorDiv.classList.remove('hidden');
             }
@@ -531,10 +543,13 @@
         async function retryAgent() {
             document.getElementById('executionStatus').innerHTML = `
                 <div class="flex items-center gap-3 p-4 bg-amber-900/20 border border-amber-500/30 rounded-xl">
-                    <div class="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div class="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin-custom"></div>
                     <div>
                         <div class="text-amber-400 font-semibold text-sm">TC4 Retry Loop in progress</div>
                         <div class="text-xs text-slate-400 mt-1">Re-processing pending/failed records only</div>
+                    </div>
+                    <div class="ml-auto">
+                        <div class="text-xs font-mono text-slate-400" id="executionProgress">0%</div>
                     </div>
                 </div>
             `;
@@ -631,22 +646,22 @@
             showSampleCsvDownload();
         }
 
-        // Show sample CSV download only after successful execution
+        // Show sample CSV download next to retry button
         function showSampleCsvDownload() {
             const existing = document.getElementById('sampleCsvBottom');
             if (existing) existing.remove();
             
             const downloadLink = document.createElement('div');
             downloadLink.id = 'sampleCsvBottom';
-            downloadLink.className = 'mt-8 flex justify-center';
+            downloadLink.className = 'mt-3 flex justify-end';
             downloadLink.innerHTML = `
                 <a href="data:text/csv;charset=utf-8,email,role%0Aalex.jones@company.com,Admin%0ASARAH.CONNOR@COMPANY.COM,manager%0Aalex.jones@company.com,Member%0Adavid.miller@company.com,member" 
                    download="sample_provisioning.csv" 
-                   class="flex items-center gap-2 px-4 py-2 bg-orange-900/20 border border-orange-500/30 rounded-lg text-xs text-orange-400 hover:bg-orange-900/40 hover:border-orange-500/50 transition shadow-lg shadow-orange-500/20">
+                   class="flex items-center gap-2 px-3 py-1.5 bg-orange-900/20 border border-orange-500/30 rounded-lg text-xs text-orange-400 hover:bg-orange-900/40 hover:border-orange-500/50 transition">
                     📥 Download Sample CSV (TC1/TC2/TC3)
                 </a>
             `;
-            document.querySelector('.max-w-6xl.mx-auto.space-y-8').appendChild(downloadLink);
+            document.getElementById('retryContainer').appendChild(downloadLink);
         }
     </script>
 </body>
