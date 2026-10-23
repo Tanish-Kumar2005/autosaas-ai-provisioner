@@ -5,6 +5,8 @@ import os
 import pandas as pd
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from database import (
     save_parsed_csv, 
     init_db, 
@@ -27,6 +29,26 @@ app.add_middleware(
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Define path configurations for static frontend serving
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(BASE_DIR, "../frontend")
+
+# Mount frontend static files if directory exists
+if os.path.exists(FRONTEND_DIR):
+    app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+
+    @app.get("/")
+    def serve_frontend():
+        """Serves the main frontend UI dashboard at the root URL."""
+        index_path = os.path.join(FRONTEND_DIR, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+        return {"detail": "Frontend index.html not found"}
+else:
+    @app.get("/")
+    def root_fallback():
+        return {"message": "AutoSaaS AI Backend is running successfully. Frontend directory not detected."}
 
 # Initialize database tables on startup
 init_db()
