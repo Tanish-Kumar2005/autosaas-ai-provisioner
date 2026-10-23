@@ -16,7 +16,6 @@ RUN apt-get update && apt-get install -y \
     libgbm1 \
     libglib2.0-0 \
     libgtk-3-0 \
-    libnspr4 \
     libpango-1.0-0 \
     libx11-6 \
     libx11-xcb1 \
@@ -24,11 +23,9 @@ RUN apt-get update && apt-get install -y \
     libxcomposite1 \
     libxcursor1 \
     libxdamage1 \
-    libext6 \
     libxfixes3 \
     libxi6 \
     libxrandr2 \
-    librender-stext0 \
     libxss1 \
     libxtst6 \
     ca-certificates \
@@ -41,7 +38,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy backend files from the correct nested folder
+# Copy backend files from the nested folder structure
 COPY auto-saas-provisioner/backend/ /app/
 
 # Install Python packages and Playwright browsers
