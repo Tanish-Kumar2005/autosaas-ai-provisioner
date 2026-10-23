@@ -41,8 +41,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy backend files
-COPY backend/ /app/
+# Copy backend files from the correct nested folder
+COPY auto-saas-provisioner/backend/ /app/
 
 # Install Python packages and Playwright browsers
 RUN pip install --no-cache-dir -r requirements.txt
