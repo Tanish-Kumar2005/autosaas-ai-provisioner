@@ -36,16 +36,20 @@ RUN apt-get update && apt-get install -y \
     libxshmfence-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# /app is created inside the container automatically
 WORKDIR /app
 
-# Copy backend files from the nested folder structure
-COPY auto-saas-provisioner/backend/ /app/
+# Copy your local auto-saas-provisioner folder into the container's /app
+COPY auto-saas-provisioner/ /app/
 
-# Install Python packages and Playwright browsers
-RUN pip install --no-cache-dir -r requirements.txt
+# Install python dependencies from backend folder
+RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 RUN playwright install chromium
+
+# Move into backend directory where main.py is located
+WORKDIR /app/backend
 
 EXPOSE 8000
 
-# Run FastAPI via Uvicorn using the dynamic port assigned by the cloud host
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Run FastAPI via Uvicorn
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-10000}"]
