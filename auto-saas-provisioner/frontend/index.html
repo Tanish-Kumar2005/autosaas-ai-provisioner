@@ -1,173 +1,305 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <title>AutoSaaS AI - Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoSaaS AI - Provisioning Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-
-<body class="bg-slate-900 text-slate-100 min-h-screen p-8">
-
-    <div class="max-w-4xl mx-auto space-y-6">
-
-        <header class="border-b border-slate-800 pb-4 flex justify-between items-center">
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans antialiased p-6">
+    <div class="max-w-5xl mx-auto space-y-8">
+        
+        <!-- Header -->
+        <header class="border-b border-slate-800 pb-5 flex justify-between items-end">
             <div>
-                <h1 class="text-2xl font-bold text-orange-500">AutoSaaS AI Provisioner</h1>
-                <p class="text-sm text-slate-400">Ziro Digital Agentic AI Hackathon 2026</p>
+                <h1 class="text-3xl font-bold text-white flex items-center gap-3">
+                    AutoSaaS AI Provisioner
+                    <span class="text-xs font-semibold uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/20 px-2.5 py-1 rounded-full">
+                        Agent Active
+                    </span>
+                </h1>
+                <p class="text-slate-400 text-sm mt-1">Autonomous user provisioning with HitL verification & resilient compliance</p>
             </div>
-            <span id="runBadge" class="text-xs bg-slate-800 border border-slate-700 text-slate-300 px-3 py-1 rounded-full font-mono">No Active Run</span>
+            <!-- Quick Helper: Sample CSV Download -->
+            <a href="data:text/csv;charset=utf-8,email,role%0Aalex.jones@company.com,Admin%0ASARAH.CONNOR@COMPANY.COM,manager%0Aalex.jones@company.com,Member%0Adavid.miller@company.com,member" 
+               download="sample_provisioning.csv" 
+               class="text-xs text-orange-400 hover:text-orange-300 underline flex items-center gap-1">
+                📥 Download Test CSV (TC1/TC2/TC3)
+            </a>
         </header>
 
-        <!-- Step 1: Upload CSV -->
-        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
-            <h2 class="font-semibold text-lg">1. Upload User CSV & Set Target URL</h2>
-            <input type="file" id="csvFile" accept=".csv" class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer"/>
-            <input type="text" id="consoleUrl" placeholder="Target Mock Console URL" value="https://autosaas-ai-provisioner.onrender.com/static/mock_console.html" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500"/>
-            <button onclick="uploadCSV()" class="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">Parse & Validate CSV</button>
-            <div id="uploadError" class="text-sm text-red-400 hidden"></div>
-        </div>
+        <!-- Step 1: Upload CSV & Set Target URL -->
+        <section class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 shadow-lg relative">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center font-bold">1</span>
+                    Upload User CSV & Set Target URL
+                </h2>
+                <span class="text-xs font-mono bg-slate-700 text-slate-300 px-2 py-1 rounded">TC1: Auto-Validation</span>
+            </div>
 
-        <!-- Step 2: Human Approval Gate -->
-        <div id="reviewSection" class="bg-slate-800 p-6 rounded-xl border border-slate-700 hidden space-y-4">
-            <h2 class="font-semibold text-lg text-amber-400">2. Human Approval & Review (HitL)</h2>
-            <p id="summaryText" class="text-sm text-slate-300"></p>
-            <button id="approveBtn" onclick="executeAgent()" class="bg-emerald-600 hover:bg-emerald-700 px-6 py-2 rounded-lg text-sm font-bold transition cursor-pointer">Approve & Run Agent</button>
-        </div>
+            <div class="space-y-4">
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input type="file" id="csvFile" accept=".csv" class="hidden" onchange="updateFileName()">
+                    <button onclick="document.getElementById('csvFile').click()" class="bg-orange-600 hover:bg-orange-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition flex items-center justify-center gap-2">
+                        📄 <span id="fileButtonText">Choose CSV File</span>
+                    </button>
+                    <input type="text" id="targetUrl" value="https://autosaas-ai-provisioner.onrender.com/static/mock_console.html" 
+                           placeholder="Target Console URL" 
+                           class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-sm font-mono text-slate-200 focus:outline-none focus:border-orange-500">
+                </div>
 
-        <!-- Step 3: Results Audit Log -->
-        <div id="resultsSection" class="bg-slate-800 p-6 rounded-xl border border-slate-700 hidden space-y-4">
-            <h2 class="font-semibold text-lg text-emerald-400">3. Execution Audit Results</h2>
-            <div id="statusMessage" class="text-sm text-slate-300 font-mono">Connecting to agent environment...</div>
-            
-            <div class="overflow-x-auto border border-slate-700 rounded-lg">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-900 text-slate-400 text-xs uppercase border-b border-slate-700">
+                <div id="uploadError" class="hidden bg-red-900/30 border border-red-500/40 text-red-300 px-4 py-3 rounded-lg text-sm"></div>
+
+                <button id="uploadBtn" onclick="uploadCSV()" class="bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold px-6 py-2.5 rounded-lg text-sm transition">
+                    Parse & Validate CSV
+                </button>
+            </div>
+        </section>
+
+        <!-- Step 2: Human Approval & Review (HitL) -->
+        <section id="hitlSection" class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 shadow-lg opacity-50 pointer-events-none transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-slate-700 text-slate-300 text-xs flex items-center justify-center font-bold" id="step2Badge">2</span>
+                    Human Approval & Review (HitL)
+                </h2>
+                <div class="flex gap-2">
+                    <span class="text-xs font-mono bg-slate-700 text-slate-300 px-2 py-1 rounded">TC2: Case-Insensitive Dedup</span>
+                    <span class="text-xs font-mono bg-slate-700 text-slate-300 px-2 py-1 rounded">HitL Approval</span>
+                </div>
+            </div>
+
+            <div id="hitlSummary" class="text-sm text-slate-300 space-y-3">
+                <p class="text-slate-400">Awaiting CSV upload and parsing...</p>
+            </div>
+
+            <div class="mt-5 flex gap-3">
+                <button id="approveBtn" onclick="approveAndRun()" disabled class="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold px-6 py-2.5 rounded-lg text-sm transition flex items-center gap-2">
+                    ⚡ Approve & Run Agent
+                </button>
+            </div>
+        </section>
+
+        <!-- Step 3: Execution Audit Results -->
+        <section id="resultsSection" class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-6 shadow-lg opacity-50 pointer-events-none transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-slate-700 text-slate-300 text-xs flex items-center justify-center font-bold" id="step3Badge">3</span>
+                    Execution Audit Results
+                </h2>
+                <div class="flex gap-2">
+                    <span class="text-xs font-mono bg-slate-700 text-slate-300 px-2 py-1 rounded">TC3: Role Override</span>
+                    <span class="text-xs font-mono bg-slate-700 text-slate-300 px-2 py-1 rounded">TC4: Retry Loop</span>
+                </div>
+            </div>
+
+            <div id="executionStatus" class="mb-4 text-sm text-slate-300"></div>
+
+            <div class="overflow-x-auto rounded-lg border border-slate-700/60">
+                <table class="w-full text-left text-sm text-slate-300">
+                    <thead class="bg-slate-900/80 text-xs uppercase text-slate-400 font-semibold border-b border-slate-700">
                         <tr>
-                            <th class="p-3">Email</th>
-                            <th class="p-3">Status</th>
-                            <th class="p-3">Verification / Details</th>
+                            <th class="px-4 py-3">Email</th>
+                            <th class="px-4 py-3">Applied Role <span class="text-slate-500 normal-case">(TC3)</span></th>
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3">Verification Details</th>
                         </tr>
                     </thead>
-                    <tbody id="resultTableBody" class="divide-y divide-slate-700 text-slate-200">
+                    <tbody id="resultsTableBody" class="divide-y divide-slate-800">
                         <tr>
-                            <td colspan="3" class="p-4 text-center text-slate-500">Waiting for execution completion...</td>
+                            <td colspan="4" class="px-4 py-6 text-center text-slate-500 italic">No execution audit results available yet.</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-        </div>
-    
+
+            <!-- Retry Option for TC4 Demonstration -->
+            <div id="retryContainer" class="mt-5 hidden flex justify-between items-center border-t border-slate-800 pt-4">
+                <p class="text-xs text-slate-400">Need to process failed or pending items again?</p>
+                <button onclick="retryAgent()" class="bg-slate-700 hover:bg-slate-600 text-orange-400 border border-orange-500/30 font-semibold px-4 py-2 rounded-lg text-xs transition flex items-center gap-1.5">
+                    🔄 Retry Pending / Failed Records (TC4)
+                </button>
+            </div>
+        </section>
+
     </div>
 
     <script>
         let currentRunId = null;
+        let activeRecords = [];
+        let filteredCount = 0;
+
+        function updateFileName() {
+            const input = document.getElementById('csvFile');
+            if (input.files.length > 0) {
+                document.getElementById('fileButtonText').textContent = input.files[0].name;
+            }
+        }
 
         async function uploadCSV() {
-            const fileInput = document.getElementById('csvFile').files[0];
-            const uploadError = document.getElementById('uploadError');
+            const fileInput = document.getElementById('csvFile');
+            const errorDiv = document.getElementById('uploadError');
+            errorDiv.classList.add('hidden');
 
-            uploadError.classList.add('hidden');
-
-            if (!fileInput) {
-                alert("Please select a CSV file first!");
+            if (!fileInput.files.length) {
+                errorDiv.textContent = "Please select a CSV file first (or download the test CSV above).";
+                errorDiv.classList.remove('hidden');
                 return;
             }
 
             const formData = new FormData();
-            formData.append("file", fileInput);
+            formData.append('file', fileInput.files[0]);
 
             try {
-                // Uses relative path so it automatically matches current domain (localhost or Render)
-                const res = await fetch('/api/upload-csv', { 
-                    method: 'POST', 
-                    body: formData 
-                });
-                
-                const data = await res.json();
+                const response = await fetch('/api/upload-csv', { method: 'POST', body: formData });
+                const data = await response.json();
 
-                if (!res.ok) {
-                    throw new Error(data.detail || "Failed to upload and validate CSV.");
+                if (!response.ok) {
+                    throw new Error(data.detail || "Failed to parse CSV file.");
                 }
 
                 currentRunId = data.run_id;
-                document.getElementById('runBadge').innerText = currentRunId;
-                document.getElementById('reviewSection').classList.remove('hidden');
+                activeRecords = data.records;
+                filteredCount = data.filtered_duplicates;
+
+                // Unlock HitL Section
+                const hitl = document.getElementById('hitlSection');
+                hitl.classList.remove('opacity-50', 'pointer-events-none');
+                document.getElementById('step2Badge').classList.replace('bg-slate-700', 'bg-orange-500');
+
+                let summaryHtml = `
+                    <div class="bg-slate-900/60 p-4 rounded-lg border border-slate-700 space-y-2">
+                        <div class="flex justify-between text-xs font-mono text-slate-400 border-b border-slate-800 pb-2">
+                            <span>RUN ID: <strong class="text-orange-400">${data.run_id}</strong></span>
+                            <span>FILE: <strong>${data.filename}</strong></span>
+                        </div>
+                        <div class="flex gap-4 pt-1 text-sm">
+                            <span class="text-emerald-400 font-semibold">✓ ${data.total_records} Active Records Queued</span>
+                            <span class="text-amber-400 font-semibold">⚠️ ${data.filtered_duplicates} Duplicates Stripped (TC2)</span>
+                        </div>
+                    </div>
+                `;
                 
-                const dupCount = data.filtered_duplicates !== undefined ? data.filtered_duplicates : 0;
-                document.getElementById('summaryText').innerText = `Parsed ${data.total_records} unique active user(s). Filtered out ${dupCount} duplicate email(s) via TC2 rule. Run ID: ${data.run_id}. Ready for execution approval.`;
+                document.getElementById('hitlSummary').innerHTML = summaryHtml;
+                document.getElementById('approveBtn').disabled = false;
+
             } catch (err) {
-                uploadError.innerText = `❌ ${err.message}`;
-                uploadError.classList.remove('hidden');
+                errorDiv.textContent = `[TC1 Validation Error]: ${err.message}`;
+                errorDiv.classList.remove('hidden');
             }
         }
 
-        async function executeAgent() {
+        async function approveAndRun() {
             if (!currentRunId) return;
 
-            const consoleUrl = document.getElementById('consoleUrl').value;
+            const consoleUrl = document.getElementById('targetUrl').value;
             const approveBtn = document.getElementById('approveBtn');
-            const statusMessage = document.getElementById('statusMessage');
-            const tbody = document.getElementById('resultTableBody');
-
             approveBtn.disabled = true;
-            approveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            approveBtn.textContent = "Approving Run...";
 
             try {
-                // 1. Authorize execution via server-side HitL Approval check
-                const approveRes = await fetch('/api/approve-run', {
+                // Step A: Approve via HitL gate
+                const appRes = await fetch('/api/approve-run', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ run_id: currentRunId })
                 });
 
-                if (!approveRes.ok) {
-                    const approveErr = await approveRes.json();
-                    throw new Error(approveErr.detail || "Server approval failed.");
-                }
+                if (!appRes.ok) throw new Error("Approval gate rejected execution.");
 
-                // 2. Display execution state and trigger agent execution
-                document.getElementById('resultsSection').classList.remove('hidden');
-                statusMessage.innerText = "🤖 Agent executing... automating browser modal actions and performing table read-back verification...";
-                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-amber-400 animate-pulse">Running Playwright browser automation...</td></tr>`;
+                // Unlock Results Section & show execution UI
+                const resultsSec = document.getElementById('resultsSection');
+                resultsSec.classList.remove('opacity-50', 'pointer-events-none');
+                document.getElementById('step3Badge').classList.replace('bg-slate-700', 'bg-orange-500');
+                
+                document.getElementById('executionStatus').innerHTML = `
+                    <div class="flex items-center gap-2 text-orange-400 animate-pulse font-medium">
+                        <span>🤖 Agent execution in progress via Playwright & Browserbase...</span>
+                    </div>
+                `;
 
-                const res = await fetch('/api/run-agent', {
+                // Step B: Trigger Agent Execution
+                executeAgent(consoleUrl);
+
+            } catch (err) {
+                alert(`Error during approval/agent execution: ${err.message}`);
+                approveBtn.disabled = false;
+                approveBtn.textContent = "⚡ Approve & Run Agent";
+            }
+        }
+
+        async function executeAgent(consoleUrl) {
+            try {
+                const response = await fetch('/api/run-agent', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ run_id: currentRunId, console_url: consoleUrl })
                 });
 
-                const data = await res.json();
-                if (!res.ok) {
-                    throw new Error(data.detail || "Agent execution failed.");
-                }
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || "Agent execution failed.");
 
-                statusMessage.innerText = `✨ Execution completed for ${data.run_id}. Audit records updated in SQLite.`;
-                
-                tbody.innerHTML = '';
-                data.results.forEach(record => {
-                    const statusBadge = record.status === 'success' 
-                        ? '<span class="bg-emerald-900/60 text-emerald-400 border border-emerald-700 px-2.5 py-1 rounded text-xs font-semibold">Created / Verified</span>'
-                        : '<span class="bg-red-900/60 text-red-400 border border-red-700 px-2.5 py-1 rounded text-xs font-semibold">Failed</span>';
-
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-slate-800/50">
-                            <td class="p-3 font-mono text-xs text-slate-300">${record.email}</td>
-                            <td class="p-3">${statusBadge}</td>
-                            <td class="p-3 text-xs text-slate-400">${record.error || 'Verified via console read-back'}</td>
-                        </tr>
-                    `;
-                });
+                renderResultsTable(data.results);
 
             } catch (err) {
-                statusMessage.innerHTML = `<span class="text-red-400">❌ Execution Error: ${err.message}</span>`;
-                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-red-400">Run aborted. Check backend logs or URL availability.</td></tr>`;
-                approveBtn.disabled = false;
-                approveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                document.getElementById('executionStatus').innerHTML = `
+                    <div class="text-red-400 font-semibold">❌ Agent execution error: ${err.message}</div>
+                `;
             }
         }
+
+        async function retryAgent() {
+            const consoleUrl = document.getElementById('targetUrl').value;
+            document.getElementById('executionStatus').innerHTML = `
+                <div class="flex items-center gap-2 text-amber-400 animate-pulse font-medium">
+                    <span>🔄 Executing TC4 Retry Loop for remaining failed/pending records...</span>
+                </div>
+            `;
+            executeAgent(consoleUrl);
+        }
+
+        function renderResultsTable(results) {
+            document.getElementById('executionStatus').innerHTML = `
+                <div class="text-emerald-400 font-medium flex items-center gap-2">
+                    <span>✨ Execution completed for ${currentRunId}. State persisted to SQLite.</span>
+                </div>
+            `;
+
+            const tbody = document.getElementById('resultsTableBody');
+            tbody.innerHTML = '';
+
+            let hasFailures = false;
+
+            results.forEach(rec => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition";
+
+                let statusBadge = "";
+                if (rec.status === 'success') {
+                    statusBadge = `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-xs font-semibold">Created / Verified</span>`;
+                } else if (rec.status === 'skipped') {
+                    statusBadge = `<span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded text-xs font-semibold">Skipped (TC2)</span>`;
+                } else {
+                    hasFailures = true;
+                    statusBadge = `<span class="bg-red-500/10 text-red-400 border border-red-500/20 px-2 py-0.5 rounded text-xs font-semibold">Failed</span>`;
+                }
+
+                // TC3 Explicit Verification note
+                const roleNote = rec.role ? `<span class="font-mono text-slate-200">${rec.role}</span> <span class="text-xs text-emerald-400/80 ml-1">(Overrode UI default)</span>` : 'Member';
+
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-mono text-slate-200">${rec.email}</td>
+                    <td class="px-4 py-3">${roleNote}</td>
+                    <td class="px-4 py-3">${statusBadge}</td>
+                    <td class="px-4 py-3 text-xs text-slate-400">${rec.error ? `<span class="text-red-400">${rec.error}</span>` : 'Verified via console DOM read-back'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Show TC4 retry block
+            document.getElementById('retryContainer').classList.remove('hidden');
+        }
     </script>
-
 </body>
-
 </html>
