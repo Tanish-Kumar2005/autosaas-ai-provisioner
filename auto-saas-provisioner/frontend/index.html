@@ -23,7 +23,7 @@
         <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
             <h2 class="font-semibold text-lg">1. Upload User CSV & Set Target URL</h2>
             <input type="file" id="csvFile" accept=".csv" class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-600 file:text-white hover:file:bg-orange-700 cursor-pointer"/>
-            <input type="text" id="consoleUrl" placeholder="Target Mock Console URL (e.g., file:///.../mock_console.html)" value="http://127.0.0.1:8080/mock_console.html" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500"/>
+            <input type="text" id="consoleUrl" placeholder="Target Mock Console URL" value="https://autosaas-ai-provisioner.onrender.com/static/mock_console.html" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500"/>
             <button onclick="uploadCSV()" class="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">Parse & Validate CSV</button>
             <div id="uploadError" class="text-sm text-red-400 hidden"></div>
         </div>
@@ -78,7 +78,8 @@
             formData.append("file", fileInput);
 
             try {
-                const res = await fetch('http://localhost:8000/api/upload-csv', { 
+                // Uses relative path so it automatically matches current domain (localhost or Render)
+                const res = await fetch('/api/upload-csv', { 
                     method: 'POST', 
                     body: formData 
                 });
@@ -114,7 +115,7 @@
 
             try {
                 // 1. Authorize execution via server-side HitL Approval check
-                const approveRes = await fetch('http://localhost:8000/api/approve-run', {
+                const approveRes = await fetch('/api/approve-run', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ run_id: currentRunId })
@@ -130,7 +131,7 @@
                 statusMessage.innerText = "🤖 Agent executing... automating browser modal actions and performing table read-back verification...";
                 tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-amber-400 animate-pulse">Running Playwright browser automation...</td></tr>`;
 
-                const res = await fetch('http://localhost:8000/api/run-agent', {
+                const res = await fetch('/api/run-agent', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ run_id: currentRunId, console_url: consoleUrl })
