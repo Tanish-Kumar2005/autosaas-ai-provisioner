@@ -280,18 +280,18 @@
                 return;
             }
 
-            // Show loading panel
-            document.getElementById('loadingPanel').classList.remove('hidden');
-            document.getElementById('loadingStatus').textContent = "Initializing validation...";
-
-            // Define TC steps for sequential checking
+            // Define TC steps for rendering results
             const tcSteps = [
                 { id: 'tc1', label: 'TC1: Auto-Validation', detail: 'Checking CSV structure & required columns...' },
                 { id: 'tc2', label: 'TC2: Case-Insensitive Dedup', detail: 'Detecting & stripping duplicate emails...' },
                 { id: 'tc3', label: 'TC3: Role Override', detail: 'Preparing role normalization map...' }
             ];
 
-            // Render checklist
+            // Show loading panel
+            document.getElementById('loadingPanel').classList.remove('hidden');
+            document.getElementById('loadingStatus').textContent = "Uploading CSV to server...";
+
+            // Render TC checklist (all pending initially)
             const container = document.getElementById('tcChecklist');
             container.innerHTML = tcSteps.map((tc, i) => `
                 <div class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50 border border-slate-700/30" id="${tc.id}-row">
@@ -306,7 +306,6 @@
                 </div>
             `).join('');
 
-            // Sequential animation with percentage
             const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
             const setTcStatus = (tcId, status) => {
                 const row = document.getElementById(`${tcId}-row`);
@@ -314,55 +313,75 @@
                 const dot = document.getElementById(`${tcId}-dot`);
                 if (status === 'checking') {
                     row.className = 'flex items-center gap-3 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30';
-                    badge.className = 'w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-xs font-mono text-white check-pop';
+                    badge.className = 'w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-xs font-mono text-white';
                     badge.textContent = '●';
-                    dot.className = 'w-2 h-2 rounded-full bg-orange-500 dot-pulse';
+                    dot.className = 'w-2 h-2 rounded-full bg-orange-500 animate-pulse';
                 } else if (status === 'done') {
                     row.className = 'flex items-center gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30';
-                    badge.className = 'w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-xs font-mono text-white check-pop';
+                    badge.className = 'w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-xs font-mono text-white';
+                    badge.innerHTML = '✓';
+                    dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+                } else if (status === 'error') {
+                    row.className = 'flex items-center gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30';
+                    badge.className = 'w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-xs font-mono text-white';
+                    badge.textContent = '✗';
+                    dot.className = 'w-2 h-2 rounded-full bg-red-500';
+                }
+            };
+
+            let percentage = 0;
+            const updatePercentage = (pct) => {
+                percentage = pct;
+                document.getElementById('tcPercentage').textContent = pct + '%';
+            };l bg-emerald-500 flex items-center justify-center text-xs font-mono text-white check-pop';
                     badge.innerHTML = '✓';
                     dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
                 }
             };
 
-            // Show percentage during TC checking
-            const tcTotal = tcSteps.length;
-            let tcCompleted = 0;
-            const updateTcPercentage = () => {
-                const pct = Math.round((tcCompleted / tcTotal) * 33); // TC checking is 33% of total
-                document.getElementById('tcPercentage').textContent = pct + '%';
-            };
-
-            for (const tc of tcSteps) {
-                await setTcStatus(tc.id, 'checking');
-                document.getElementById('loadingStatus').textContent = `${tc.label}...`;
-                await sleep(700);
-                await setTcStatus(tc.id, 'done');
-                tcCompleted++;
-                updateTcPercentage();
-                await sleep(300);
-            }
-
-            document.getElementById('loadingStatus').textContent = "Uploading to server...";
-            await sleep(400);
-
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
             try {
+                updatePercentage(0);
+                await sleep(200);
+
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+
                 const response = await fetch('/api/upload-csv', { method: 'POST', body: formData });
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.detail || "Failed to parse CSV file.");
+                    // Server returned error - show TC1 as failed
+                    updatePercentage(33);
+                    await setTcStatus('tc1', 'error');
+                    document.getElementById('loadingStatus').textContent = "Validation failed.";
+                    await sleep(800);
+                    document.getElementById('loadingPanel').classList.add('hidden');
+                    errorText.textContent = `[TC1 Validation Error] ${data.detail || "Failed to parse CSV file."}`;
+                    errorDiv.classList.remove('hidden');
+                    return;
                 }
 
-                // Mark all TCs done and hide loading panel
-                for (const tc of tcSteps) {
-                    await setTcStatus(tc.id, 'done');
-                }
+                // Server succeeded - mark all TCs as done
+                currentRunId = data.run_id;
+                activeRecords = data.records;
+                filteredCount = data.filtered_duplicates;
+
+                await setTcStatus('tc1', 'done');
+                updatePercentage(33);
+                document.getElementById('loadingStatus').textContent = "TC2: Processing duplicates...";
+                await sleep(300);
+
+                await setTcStatus('tc2', 'done');
+                updatePercentage(66);
+                document.getElementById('loadingStatus').textContent = "TC3: Preparing role normalization...";
+                await sleep(300);
+
+                await setTcStatus('tc3', 'done');
+                updatePercentage(100);
                 document.getElementById('loadingStatus').textContent = "Validation complete!";
                 await sleep(400);
+
+                // Hide loading panel
                 document.getElementById('loadingPanel').classList.add('hidden');
 
                 currentRunId = data.run_id;
