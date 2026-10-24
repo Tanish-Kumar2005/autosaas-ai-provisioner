@@ -233,17 +233,17 @@
             </div>
 
             <!-- Retry Option for TC4 -->
-            <div id="retryContainer" class="hidden mt-6 border border-slate-800/50 rounded-xl p-4 bg-slate-900/30 flex flex-wrap items-center justify-start gap-3">
-                <div class="flex items-center gap-2 text-sm text-slate-400 flex-1 min-w-0">
+            <div id="retryContainer" class="hidden mt-6 border border-slate-800/50 rounded-xl p-4 bg-slate-900/30 flex flex-row items-center justify-start gap-3 flex-nowrap">
+                <div class="flex items-center gap-2 text-sm text-slate-400 flex-shrink-0">
                     <span class="w-1 h-1 rounded-full bg-orange-500 animate-pulse flex-shrink-0"></span>
-                    <span class="truncate">Need to reprocess failed or pending records?</span>
+                    <span class="text-xs text-slate-400 truncate">Need to reprocess failed or pending records?</span>
                 </div>
                 <button onclick="retryAgent()"
-                        class="bg-orange-900/20 hover:bg-orange-900/40 text-orange-400 border border-orange-500/30 font-semibold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2 flex-shrink-0">
+                        class="bg-orange-900/20 hover:bg-orange-900/40 text-orange-400 border border-orange-500/30 font-semibold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-2 flex-shrink-0">
                     🔄 Retry Pending / Failed Records (TC4)
                 </button>
-                <a id="sampleCsvBottom" href="static/sample_provisioning.csv" download class="bg-orange-900/10 hover:bg-orange-900/20 text-orange-400 border border-orange-500/30 font-semibold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2 flex-shrink-0" download>
-                    📥 Download Sample CSV (TC1/TC2/TC3)
+                <a id="sampleCsvBottom" href="static/sample_provisioning.csv" download class="bg-orange-900/10 hover:bg-orange-900/20 text-orange-400 border border-orange-500/30 font-semibold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-2 flex-shrink-0" download>
+                    📥 Sample CSV (TC1/TC2/TC3)
                 </a>
             </div>
         </section>
@@ -513,11 +513,10 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ run_id: currentRunId, console_url: "https://autosaas-ai-provisioner.onrender.com/static/mock_console.html" })
                 });
-                clearInterval(progressInterval);
-                document.getElementById('executionProgress').textContent = '100%';
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || "Agent execution failed.");
                 renderResultsTable(data.results);
+                document.getElementById('executionProgress').textContent = '100%';
             } catch (err) {
                 clearInterval(progressInterval);
                 document.getElementById('executionStatus').innerHTML = `
@@ -642,21 +641,9 @@
         }
 
         // Show sample CSV download next to retry button
+        // Show sample CSV download next to retry button
         function showSampleCsvDownload() {
-            const existing = document.getElementById('sampleCsvBottom');
-            if (existing) existing.remove();
-            
-            const downloadLink = document.createElement('div');
-            downloadLink.id = 'sampleCsvBottom';
-            downloadLink.className = 'mt-3 flex justify-end';
-            downloadLink.innerHTML = `
-                <a href="data:text/csv;charset=utf-8,email,role%0Aalex.jones@company.com,Admin%0ASARAH.CONNOR@COMPANY.COM,manager%0Aalex.jones@company.com,Member%0Adavid.miller@company.com,member" 
-                   download="sample_provisioning.csv" 
-                   class="flex items-center gap-2 px-3 py-1.5 bg-orange-900/20 border border-orange-500/30 rounded-lg text-xs text-orange-400 hover:bg-orange-900/40 hover:border-orange-500/50 transition">
-                    📥 Download Sample CSV (TC1/TC2/TC3)
-                </a>
-            `;
-            document.getElementById('retryContainer').appendChild(downloadLink);
+            // Download link is in the HTML, no dynamic creation needed
         }
     </script>
 </body>
