@@ -233,15 +233,18 @@
             </div>
 
             <!-- Retry Option for TC4 -->
-            <div id="retryContainer" class="hidden mt-6 border border-slate-800/50 rounded-xl p-4 bg-slate-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div class="flex items-center gap-2 text-sm text-slate-400">
-                    <span class="w-1 h-1 rounded-full bg-orange-500 animate-pulse"></span>
-                    <span>Need to reprocess failed or pending records?</span>
+            <div id="retryContainer" class="hidden mt-6 border border-slate-800/50 rounded-xl p-4 bg-slate-900/30 flex flex-wrap items-center justify-start gap-3">
+                <div class="flex items-center gap-2 text-sm text-slate-400 flex-1 min-w-0">
+                    <span class="w-1 h-1 rounded-full bg-orange-500 animate-pulse flex-shrink-0"></span>
+                    <span class="truncate">Need to reprocess failed or pending records?</span>
                 </div>
-                <button onclick="retryAgent()" 
-                        class="bg-orange-900/20 hover:bg-orange-900/40 text-orange-400 border border-orange-500/30 font-semibold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2">
+                <button onclick="retryAgent()"
+                        class="bg-orange-900/20 hover:bg-orange-900/40 text-orange-400 border border-orange-500/30 font-semibold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2 flex-shrink-0">
                     🔄 Retry Pending / Failed Records (TC4)
                 </button>
+                <a id="sampleCsvBottom" href="static/sample_provisioning.csv" download class="bg-orange-900/10 hover:bg-orange-900/20 text-orange-400 border border-orange-500/30 font-semibold px-4 py-2 rounded-lg text-xs transition flex items-center gap-2 flex-shrink-0" download>
+                    📥 Download Sample CSV (TC1/TC2/TC3)
+                </a>
             </div>
         </section>
 
@@ -486,6 +489,8 @@
                 `;
 
                 await executeAgentWithProgress();
+                approveBtn.disabled = false;
+                approveBtn.innerHTML = '⚡ Approve & Run Agent';
             } catch (err) {
                 alert(`Error during approval/agent execution: ${err.message}`);
                 approveBtn.disabled = false;
