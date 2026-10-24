@@ -18,11 +18,9 @@
 
         /* Dot pulse for sequential checking */
         @keyframes dotPulse { 0%,80%,100% { transform: scale(0.95); opacity: 0.5; } 40% { transform: scale(1.2); opacity: 1; } }
-        .dot-pulse { animation: dotPulse 1.5s infinite; }
 
         /* Step checkmark animation */
         @keyframes checkPop { 0% { transform: scale(0); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
-        .check-pop { animation: checkPop 0.4s ease-out forwards; }
 
         /* Loading panel */
         #loadingPanel {
@@ -333,10 +331,6 @@
             const updatePercentage = (pct) => {
                 percentage = pct;
                 document.getElementById('tcPercentage').textContent = pct + '%';
-            };l bg-emerald-500 flex items-center justify-center text-xs font-mono text-white check-pop';
-                    badge.innerHTML = '✓';
-                    dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
-                }
             };
 
             try {
@@ -496,29 +490,6 @@
                 alert(`Error during approval/agent execution: ${err.message}`);
                 approveBtn.disabled = false;
                 approveBtn.innerHTML = '⚡ Approve & Run Agent';
-            }
-        }
-
-        async function executeAgent() {
-            try {
-                const response = await fetch('/api/run-agent', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ run_id: currentRunId, console_url: "https://autosaas-ai-provisioner.onrender.com/static/mock_console.html" })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || "Agent execution failed.");
-                renderResultsTable(data.results);
-            } catch (err) {
-                document.getElementById('executionStatus').innerHTML = `
-                    <div class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl">
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="w-1 h-1 rounded-full bg-red-500"></span>
-                            <span class="text-red-400 font-semibold">❌ Agent execution error</span>
-                        </div>
-                        <div class="text-sm text-red-300">${err.message}</div>
-                    </div>
-                `;
             }
         }
 
