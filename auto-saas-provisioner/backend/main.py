@@ -138,6 +138,19 @@ def approve_run(payload: dict):
     return {"run_id": run_id, "status": "approved"}
 
 
+@app.get("/api/run-progress")
+def run_progress(run_id: str):
+    """Returns completed/total record counts for live progress tracking."""
+    conn = sqlite3.connect("provisioner_state.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT total_records FROM runs WHERE run_id = ?", (run_id,))
+    row = cursor.fetchone()
+    total = row[0] if row else 0
+    cursor.execute("SELECT COUNT(*) FROM records WHERE run_id = ? AND status = 'success'", (run_id,))
+    completed = cursor.fetchone()[0]
+    conn.close()
+    return {"completed": completed, "total": total}
+
 @app.post("/api/run-agent")
 def run_agent(payload: dict):
     """Triggers the Browserbase agent using run_id and console URL, supporting TC4 retries for failed/pending records."""

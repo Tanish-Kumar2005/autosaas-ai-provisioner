@@ -502,12 +502,24 @@
             const startTime = performance.now();
             const progressEl = document.getElementById('executionProgress');
             if (progressEl) progressEl.textContent = '0%';
+            const pollInterval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/api/run-progress?run_id=${currentRunId}`);
+                    const d = await res.json();
+                    if (d.total > 0) {
+                        const pct = Math.round((d.completed / d.total) * 100);
+                        const el = document.getElementById('executionProgress');
+                        if (el) el.textContent = pct + '%';
+                    }
+                } catch (e) {}
+            }, 500);
             try {
                 const response = await fetch('/api/run-agent', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ run_id: currentRunId, console_url: "https://autosaas-ai-provisioner.onrender.com/static/mock_console.html" })
                 });
+                clearInterval(pollInterval);
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || "Agent execution failed.");
                 const doneEl = document.getElementById('executionProgress');
@@ -515,6 +527,7 @@
                 const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
                 renderResultsTable(data.results, elapsed);
             } catch (err) {
+                clearInterval(pollInterval);
                 document.getElementById('executionStatus').innerHTML = `
                     <div class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl">
                         <div class="flex items-center gap-2 mb-2">
