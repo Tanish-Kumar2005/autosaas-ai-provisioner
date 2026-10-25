@@ -1,5 +1,4 @@
 import os 
-import time
 from dotenv import load_dotenv
 from browserbase import Browserbase
 from playwright.sync_api import sync_playwright
@@ -69,22 +68,20 @@ class BrowserbaseProvisioningAgent:
                     print(f"Provisioning user: {email} with role: {role}")
 
                     try:
-                        # 1. Open the modal
+                        # 1. Open the modal (synchronous toggle, no wait needed)
                         page.click("#open-modal-btn")
-                        page.wait_for_selector("#userModal:not(.hidden)", timeout=5000)
 
                         # 2. Fill out email and normalized role inside the modal
                         page.fill("#email-input", email)
                         page.select_option("#role-dropdown", role)
                         
-                        # 3. Submit the user
+                        # 3. Submit the user (submitUser() is synchronous DOM append)
                         page.click("#submit-user-btn")
                         
-                        time.sleep(0.5) # Brief pause for UI state update
-                        
-                        # 4. Read-back verification (TC requirement: re-read console state)
-                        table_content = page.locator("#userTableBody").inner_text()
-                        if email in table_content:
+                        # 4. Targeted read-back verification: only check the last appended row
+                        #    instead of reading the entire table (O(n) -> O(1) per record)
+                        last_row = page.locator("#userTableBody tr:last-child").inner_text()
+                        if email in last_row and role in last_row:
                             update_record_status(self.run_id, record_id, "success", "Successfully provisioned and verified in console")
                             log_audit_event(self.run_id, "SUCCESS", f"Provisioned and verified user: {email}")
                             results.append({"email": email, "status": "success"})
