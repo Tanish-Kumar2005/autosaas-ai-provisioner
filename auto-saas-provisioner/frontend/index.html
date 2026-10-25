@@ -604,6 +604,7 @@
 
             const csvRoleMap = {};
             activeRecords.forEach(r => { csvRoleMap[r.email.toLowerCase()] = r.role || 'Member'; });
+            window.csvRoleMap = csvRoleMap;
 
             results.forEach((rec, i) => {
                 const tr = document.createElement('tr');
@@ -700,7 +701,7 @@
             const rows = results.map((r, i) => ({
                 '#': i + 1,
                 'Email': r.email,
-                'CSV Role': (csvRoleMap[r.email.toLowerCase()] || 'Member'),
+                'CSV Role': ((window.csvRoleMap || {})[r.email.toLowerCase()] || 'Member'),
                 'Applied Role': (r.role || 'Member'),
                 'Status': r.status,
                 'Verification': r.error || 'Verified via console DOM read-back'
