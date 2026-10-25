@@ -1,0 +1,11 @@
+email,role
+alice@company.com,admin
+bob@company.com,Manager
+charlie@company.com,Member
+ALICE@company.com,admin
+invalid-email,Member
+dave@company.com,unknown
+eve@company.com,member
+frank@company.com,ADMIN
+grace@company.com,Manager
+heidi@company.com,Member

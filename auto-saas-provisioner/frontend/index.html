@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoSaaS AI - Provisioning Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -242,9 +243,12 @@
                         class="bg-orange-900/20 hover:bg-orange-900/40 text-orange-400 border border-orange-500/30 font-semibold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-2 flex-shrink-0">
                     🔄 Retry Pending / Failed Records (TC4)
                 </button>
-                <a id="sampleCsvBottom" href="static/sample_provisioning.csv" download class="bg-orange-900/10 hover:bg-orange-900/20 text-orange-400 border border-orange-500/30 font-semibold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-2 flex-shrink-0" download>
-                    📥 Sample CSV (TC1/TC2/TC3)
-                </a>
+                <div class="flex items-center gap-1 flex-shrink-0">
+                    <span class="text-[10px] text-slate-500 mr-1">Download Results:</span>
+                    <button onclick="downloadResults('csv')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-semibold px-2.5 py-1.5 rounded-lg text-xs transition">CSV</button>
+                    <button onclick="downloadResults('json')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-semibold px-2.5 py-1.5 rounded-lg text-xs transition">JSON</button>
+                    <button onclick="downloadResults('xlsx')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-semibold px-2.5 py-1.5 rounded-lg text-xs transition">Excel</button>
+                </div>
             </div>
         </section>
 
@@ -653,6 +657,53 @@
         // Show sample CSV download next to retry button
         function showSampleCsvDownload() {
             // Download link is in the HTML, no dynamic creation needed
+        }
+
+        // Download final provisioning results in the chosen format
+        function downloadResults(format) {
+            if (!results || !results.length) {
+                alert('No results to download yet.');
+                return;
+            }
+            const rows = results.map((r, i) => ({
+                '#': i + 1,
+                'Email': r.email,
+                'CSV Role': (csvRoleMap[r.email.toLowerCase()] || 'Member'),
+                'Applied Role': (r.role || 'Member'),
+                'Status': r.status,
+                'Verification': r.error || 'Verified via console DOM read-back'
+            }));
+
+            if (format === 'csv') {
+                const headers = Object.keys(rows[0]);
+                const csv = [headers.join(',')]
+                    .concat(rows.map(r => headers.map(h => `"${String(r[h]).replace(/"/g, '""')}"`).join(',')))
+                    .join('\n');
+                triggerDownload(csv, 'text/csv', 'provisioning_results.csv');
+            } else if (format === 'json') {
+                triggerDownload(JSON.stringify(rows, null, 2), 'application/json', 'provisioning_results.json');
+            } else if (format === 'xlsx') {
+                if (typeof XLSX === 'undefined') {
+                    alert('Excel library not loaded. Check your internet connection.');
+                    return;
+                }
+                const ws = XLSX.utils.json_to_sheet(rows);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Results');
+                XLSX.writeFile(wb, 'provisioning_results.xlsx');
+            }
+        }
+
+        function triggerDownload(content, mime, filename) {
+            const blob = new Blob([content], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
     </script>
 </body>
