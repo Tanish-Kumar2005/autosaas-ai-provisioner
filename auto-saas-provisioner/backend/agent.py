@@ -68,18 +68,16 @@ class BrowserbaseProvisioningAgent:
                     print(f"Provisioning user: {email} with role: {role}")
 
                     try:
-                        # 1. Open the modal (synchronous toggle, no wait needed)
-                        page.click("#open-modal-btn")
-
-                        # 2. Fill out email and normalized role inside the modal
-                        page.fill("#email-input", email)
-                        page.select_option("#role-dropdown", role)
-                        
-                        # 3. Submit the user (submitUser() is synchronous DOM append)
-                        page.click("#submit-user-btn")
+                        # 1-3. Open modal, fill form, submit — all in a single JS round-trip
+                        #       to eliminate Playwright per-call overhead
+                        page.evaluate(f"""() => {{
+                            document.getElementById('open-modal-btn').click();
+                            document.getElementById('email-input').value = {repr(email)};
+                            document.getElementById('role-dropdown').value = {repr(role)};
+                            document.getElementById('submit-user-btn').click();
+                        }}""")
                         
                         # 4. Targeted read-back verification: only check the last appended row
-                        #    instead of reading the entire table (O(n) -> O(1) per record)
                         last_row = page.locator("#userTableBody tr:last-child").inner_text()
                         if email in last_row and role in last_row:
                             update_record_status(self.run_id, record_id, "success", "Successfully provisioned and verified in console")

@@ -501,6 +501,7 @@
         async function executeAgentWithProgress() {
             const totalRecords = activeRecords.length;
             let completedRecords = 0;
+            const startTime = performance.now();
             const progressInterval = setInterval(() => {
                 completedRecords = Math.min(completedRecords + 1, totalRecords);
                 // Keep progress below 100% until the API actually resolves
@@ -517,7 +518,8 @@
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || "Agent execution failed.");
-                renderResultsTable(data.results);
+                const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+                renderResultsTable(data.results, elapsed);
                 const progressEl = document.getElementById('executionProgress');
                 if (progressEl) progressEl.textContent = '100%';
             } catch (err) {
@@ -553,13 +555,13 @@
             executeAgentWithProgress();
         }
 
-        function renderResultsTable(results) {
+        function renderResultsTable(results, elapsedSec) {
             document.getElementById('executionStatus').innerHTML = `
                 <div class="flex items-center gap-3 p-4 bg-emerald-900/20 border border-emerald-500/30 rounded-xl mb-4">
                     <span class="text-emerald-400">✓</span>
                     <div>
                         <div class="text-emerald-400 font-semibold text-sm">Execution completed for <span class="font-mono">${currentRunId}</span></div>
-                        <div class="text-xs text-slate-400 mt-1">State persisted to SQLite • Console DOM read-back verified</div>
+                        <div class="text-xs text-slate-400 mt-1">Processed ${results.length} records in ${elapsedSec}s (${(results.length / parseFloat(elapsedSec)).toFixed(1)} records/sec) • State persisted to SQLite • Console DOM read-back verified</div>
                     </div>
                 </div>
             `;
