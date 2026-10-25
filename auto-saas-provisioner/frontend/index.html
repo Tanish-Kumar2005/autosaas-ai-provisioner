@@ -500,16 +500,9 @@
 
         async function executeAgentWithProgress() {
             const totalRecords = activeRecords.length;
-            let completedRecords = 0;
             const startTime = performance.now();
-            const progressInterval = setInterval(() => {
-                completedRecords = Math.min(completedRecords + 1, totalRecords);
-                // Keep progress below 100% until the API actually resolves
-                const pct = Math.min(90, Math.round((completedRecords / totalRecords) * 100));
-                const el = document.getElementById('executionProgress');
-                if (el) el.textContent = pct + '%';
-                if (completedRecords >= totalRecords - 1) clearInterval(progressInterval);
-            }, 20);
+            const progressEl = document.getElementById('executionProgress');
+            if (progressEl) progressEl.textContent = '0%';
             try {
                 const response = await fetch('/api/run-agent', {
                     method: 'POST',
@@ -518,12 +511,11 @@
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.detail || "Agent execution failed.");
+                const doneEl = document.getElementById('executionProgress');
+                if (doneEl) doneEl.textContent = '100%';
                 const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
                 renderResultsTable(data.results, elapsed);
-                const progressEl = document.getElementById('executionProgress');
-                if (progressEl) progressEl.textContent = '100%';
             } catch (err) {
-                clearInterval(progressInterval);
                 document.getElementById('executionStatus').innerHTML = `
                     <div class="p-4 bg-red-900/20 border border-red-500/30 rounded-xl">
                         <div class="flex items-center gap-2 mb-2">
