@@ -82,7 +82,7 @@ class BrowserbaseProvisioningAgent:
                         if email in last_row and role in last_row:
                             update_record_status(self.run_id, record_id, "success", "Successfully provisioned and verified in console")
                             log_audit_event(self.run_id, "SUCCESS", f"Provisioned and verified user: {email}")
-                            results.append({"email": email, "status": "success"})
+                            results.append({"email": email, "status": "success", "role": role})
                         else:
                             raise Exception("User submitted but not found in console table read-back verification.")
 
@@ -91,7 +91,7 @@ class BrowserbaseProvisioningAgent:
                         print(f"Failed to provision {email}: {err_msg}")
                         update_record_status(self.run_id, record_id, "failed", err_msg)
                         log_audit_event(self.run_id, "ERROR", f"Failed to provision {email}: {err_msg}")
-                        results.append({"email": email, "status": "failed", "error": err_msg})
+                        results.append({"email": email, "status": "failed", "error": err_msg, "role": role})
 
                 print("All pending records processed!")
                 update_run_status(self.run_id, "completed")
