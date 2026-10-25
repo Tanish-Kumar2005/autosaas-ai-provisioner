@@ -509,7 +509,7 @@
                 const el = document.getElementById('executionProgress');
                 if (el) el.textContent = pct + '%';
                 if (completedRecords >= totalRecords - 1) clearInterval(progressInterval);
-            }, 200);
+            }, 20);
             try {
                 const response = await fetch('/api/run-agent', {
                     method: 'POST',
