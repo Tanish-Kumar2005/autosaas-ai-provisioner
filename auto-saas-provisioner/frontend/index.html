@@ -247,12 +247,21 @@
                     <button onclick="toggleDownloadMenu()" class="bg-emerald-900/20 hover:bg-emerald-900/40 text-emerald-400 border border-emerald-500/30 font-semibold px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-2">
                         📥 Download Results
                     </button>
-                    <div id="downloadMenu" class="hidden absolute right-0 top-full mt-2 bg-slate-900 border border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden">
-                        <button onclick="downloadResults('csv'); toggleDownloadMenu();" class="block w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-800 transition">CSV (.csv)</button>
-                        <button onclick="downloadResults('json'); toggleDownloadMenu();" class="block w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-800 transition">JSON (.json)</button>
-                        <button onclick="downloadResults('xlsx'); toggleDownloadMenu();" class="block w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-800 transition">Excel (.xlsx)</button>
-                    </div>
                 </div>
+            </div>
+
+            <!-- Download format modal -->
+            <div id="downloadModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                <div class="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-80 shadow-2xl">
+                    <h3 class="text-white font-semibold mb-4">Choose download format</h3>
+                    <div class="space-y-2">
+                        <button onclick="downloadResults('csv'); closeDownloadModal();" class="w-full text-left px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm transition">📄 CSV (.csv)</button>
+                        <button onclick="downloadResults('json'); closeDownloadModal();" class="w-full text-left px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm transition">🧾 JSON (.json)</button>
+                        <button onclick="downloadResults('xlsx'); closeDownloadModal();" class="w-full text-left px-4 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm transition">📊 Excel (.xlsx)</button>
+                    </div>
+                    <button onclick="closeDownloadModal();" class="mt-4 w-full px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs transition">Cancel</button>
+                </div>
+            </div>
             </div>
         </section>
 
@@ -665,8 +674,12 @@
         }
 
         function toggleDownloadMenu() {
-            const m = document.getElementById('downloadMenu');
+            const m = document.getElementById('downloadModal');
             if (m) m.classList.toggle('hidden');
+        }
+        function closeDownloadModal() {
+            const m = document.getElementById('downloadModal');
+            if (m) m.classList.add('hidden');
         }
 
         // Close menu when clicking outside
