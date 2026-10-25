@@ -489,8 +489,7 @@
                 `;
 
                 await executeAgentWithProgress();
-                approveBtn.disabled = false;
-                approveBtn.innerHTML = '⚡ Approve & Run Agent';
+                approveBtn.innerHTML = '✓ Completed';
             } catch (err) {
                 alert(`Error during approval/agent execution: ${err.message}`);
                 approveBtn.disabled = false;
